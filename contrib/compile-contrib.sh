@@ -2,16 +2,15 @@
 set -e
 
 ABS_DIR="$(cd "$(dirname "$0")"; pwd)"
-cd "$ABS_DIR"
 
-TARBALLS="tarballs"
+TARBALLS="$ABS_DIR/tarballs"
 [ ! -d "$TARBALLS" ] && { \
     echo "No tarballs dir found"; return 1; }
 
 echo "----------------------------"
 echo "[*] Make NDK standalone toolchain"
 echo "----------------------------"
-TOOLCHAIN_PATH="toolchain"
+TOOLCHAIN_PATH="$ABS_DIR/toolchain"
 ANDROID_PLATFORM=android-9
 TOOLCHAIN_PREFIX=arm-linux-androideabi-
 GCC_VER=4.8
@@ -27,10 +26,10 @@ export PATH="$TOOLCHAIN_PATH/bin:$PATH"
 export CROSS_SYSROOT="$TOOLCHAIN_PATH/sysroot"
 echo -e "Done\n"
 
-CONTRIB_SRC="contrib-${TOOLCHAIN_PREFIX%-}"
+CONTRIB_SRC="$ABS_DIR/contrib-${TOOLCHAIN_PREFIX%-}"
 [ ! -d "$CONTRIB_SRC" ] && mkdir "$CONTRIB_SRC"
 
-INSTALL="install"
+INSTALL="$ABS_DIR/install"
 
 compile_openssl() {
     echo "----------------------------"
