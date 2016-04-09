@@ -24,11 +24,14 @@ extern "C" {
 
 struct LibFQRtmp {
     jclass clazz;
+    jobject weak_thiz;
+    struct {
+        jclass clazz;
+    } IllegalArgumentException;
     struct {
         jclass clazz;
     } String;
     jmethodID onNativeCrashID;
-    jfieldID mInstanceID;
     jmethodID dispatchEventFromNativeID;
 };
 
@@ -52,6 +55,11 @@ static inline int libfqrtmp_log_print(const char *file, const int line,
 
     __android_log_write(prio, tag, buf);
     return 0;
+}
+
+static inline void throw_IllegalArgumentException(JNIEnv *env, const char *error)
+{
+    (*env)->ThrowNew(env, LibFQRtmp.IllegalArgumentException.clazz, error);
 }
 
 #ifdef __cplusplus

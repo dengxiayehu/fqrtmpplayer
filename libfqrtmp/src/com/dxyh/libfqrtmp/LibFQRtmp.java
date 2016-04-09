@@ -1,7 +1,5 @@
 package com.dxyh.libfqrtmp;
 
-import java.util.ArrayList;
-
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -9,14 +7,14 @@ import android.util.Log;
 public class LibFQRtmp {
     private static final String TAG = "LibFQRtmp";
     
-    public static final int OPENING = 1;
+    public static final int OPENING = 0;
+    public static final int CONNECTED = 1;
     public static final int PLAYING = 2;
     public static final int PUSHING = 3;
     public static final int ENCOUNTERED_ERROR = 4;
     
     private Event.Listener mEventListener = null;
     private Handler mHandler = null;
-    private long mInstance = 0;
     private synchronized void dispatchEventFromNative(int eventType, long arg1, String arg2) {
         final Event event = new Event(eventType, arg1, arg2);
         
@@ -38,7 +36,7 @@ public class LibFQRtmp {
             mHandler.post(new EventRunnable(mEventListener, event));
     }
     
-    protected synchronized void setEventListener(Event.Listener listener) {
+    public synchronized void setEventListener(Event.Listener listener) {
         if (mHandler != null)
             mHandler.removeCallbacksAndMessages(null);
         mEventListener = listener;
@@ -46,15 +44,18 @@ public class LibFQRtmp {
             mHandler = new Handler(Looper.getMainLooper());
     }
     
-    public LibFQRtmp(ArrayList<String> options) {
-        nativeNew(options.toArray(new String[options.size()]));
+    public LibFQRtmp() {
+    }
+    
+    public void start(String cmdline) {
+        nativeNew(cmdline);
     }
     public void stop() {
         nativeRelease();
     }
     
     public native String version();
-    private native void nativeNew(String[] options);
+    private native void nativeNew(String cmdline);
     private native void nativeRelease();
     
     private static OnNativeCrashListener sOnNativeCrashListener;

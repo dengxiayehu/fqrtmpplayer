@@ -2,9 +2,9 @@
 #include <pthread.h>
 
 #include "native_crash_handler.h"
+#include "libfqrtmp_events.h"
+#include "version.h"
 #include "util.h"
-
-#define VERSION_MESSAGE "0.1"
 
 struct LibFQRtmp LibFQRtmp;
 
@@ -17,12 +17,12 @@ static JavaVM *cached_jvm;
 static pthread_key_t jni_env_key;
 
 static jstring version(JNIEnv *, jobject);
-static void nativeNew(JNIEnv *, jobject, jobjectArray);
+static void nativeNew(JNIEnv *, jobject, jstring cmdline);
 static void nativeRelease(JNIEnv *, jobject);
 
 static JNINativeMethod method[] = {
     {"version", "()Ljava/lang/String;", (void *) version},
-    {"nativeNew", "([Ljava/lang/String;)V", (void *) nativeNew},
+    {"nativeNew", "(Ljava/lang/String;)V", (void *) nativeNew},
     {"nativeRelease", "()V", (void *) nativeRelease},
 };
 
@@ -96,6 +96,9 @@ JNI_OnLoad(JavaVM *jvm, void *reserved)
     GET_CLASS(LibFQRtmp.clazz,
               "com/dxyh/libfqrtmp/LibFQRtmp", 1);
 
+    GET_CLASS(LibFQRtmp.IllegalArgumentException.clazz,
+              "java/lang/IllegalArgumentException", 1);
+
     GET_CLASS(LibFQRtmp.String.clazz,
               "java/lang/String", 1);
 
@@ -103,11 +106,6 @@ JNI_OnLoad(JavaVM *jvm, void *reserved)
            LibFQRtmp.onNativeCrashID,
            LibFQRtmp.clazz,
            "onNativeCrash", "()V");
-
-    GET_ID(GetFieldID,
-           LibFQRtmp.mInstanceID,
-           LibFQRtmp.clazz,
-           "mInstance", "J");
 
     GET_ID(GetMethodID,
            LibFQRtmp.dispatchEventFromNativeID,
@@ -133,6 +131,8 @@ JNI_OnUnload(JavaVM *jvm, void *reserved)
         return;
 
     (*env)->DeleteGlobalRef(env, LibFQRtmp.clazz);
+    (*env)->DeleteGlobalRef(env, LibFQRtmp.String.clazz);
+    (*env)->DeleteGlobalRef(env, LibFQRtmp.IllegalArgumentException.clazz);
 
     pthread_key_delete(jni_env_key);
 }
@@ -142,10 +142,24 @@ static jstring version(JNIEnv *env, jobject thiz)
     return my_new_string(VERSION_MESSAGE);
 }
 
-static void nativeNew(JNIEnv *env, jobject thiz, jobjectArray opts)
+static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
 {
+    const char *str;
+
+    str = (*env)->GetStringUTFChars(env, cmdline, NULL);
+    if (!str) {
+        throw_IllegalArgumentException(env, "cmdline invalid");
+        return;
+    }
+
+    LibFQRtmp.weak_thiz = (*env)->NewWeakGlobalRef(env, thiz);
+    if (!LibFQRtmp.weak_thiz) goto out;
+
+out:
+    (*env)->ReleaseStringUTFChars(env, cmdline, str);
 }
 
 static void nativeRelease(JNIEnv *env, jobject thiz)
 {
+    (*env)->DeleteWeakGlobalRef(env, LibFQRtmp.weak_thiz);
 }

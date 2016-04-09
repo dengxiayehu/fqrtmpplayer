@@ -40,7 +40,7 @@ void init_native_crash_handler()
     handler.sa_sigaction = sigaction_callback;
     handler.sa_flags = SA_RESETHAND;
 
-    for (i = 0; i < sizeof(monitored_signals)/sizeof(int); ++i) {
+    for (i = 0; i < NELEM(monitored_signals); ++i) {
         const int s = monitored_signals[i];
         sigaction(s, &handler, &old_actions[s]);
     }
@@ -49,7 +49,7 @@ void init_native_crash_handler()
 void destroy_native_crash_handler()
 {
     unsigned i;
-    for (i = 0; i < sizeof(monitored_signals)/sizeof(int); ++i) {
+    for (i = 0; i < NELEM(monitored_signals); ++i) {
         const int s = monitored_signals[i];
         sigaction(s, &old_actions[s], NULL);
     }

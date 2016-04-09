@@ -14,7 +14,10 @@ PRIVATE_LIBDIR := $(CONTRIB_INSTALL)/lib
 
 LOCAL_MODULE := libfqrtmpjni
 
-LOCAL_SRC_FILES := libfqrtmpjni.c native_crash_handler.c util.c
+LOCAL_SRC_FILES := libfqrtmpjni.c \
+    native_crash_handler.c \
+    util.c \
+    libfqrtmp_events.c
 
 LOCAL_C_INCLUDES := $(PRIVATE_INCDIR)
 LOCAL_LDLIBS := -llog

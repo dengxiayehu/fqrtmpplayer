@@ -1,0 +1,1 @@
+#define VERSION_MESSAGE "0.1"
