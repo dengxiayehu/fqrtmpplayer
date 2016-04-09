@@ -3,7 +3,18 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.dxyh.fqrtmpplayer.MainActivity" >
     <item
-        android:id="@+id/action_donate"
+        android:id="@+id/action_play"
         android:orderInCategory="100"
-        android:title="@string/action_donate" />
+        android:icon="@android:drawable/ic_menu_view"
+        android:title="@string/action_play" />
+    <item
+        android:id="@+id/action_live"
+        android:orderInCategory="100"
+        android:icon="@android:drawable/ic_menu_upload_you_tube"
+        android:title="@string/action_live" />
+    <item
+        android:id="@+id/action_about"
+        android:orderInCategory="100"
+        android:icon="@android:drawable/ic_menu_help"
+        android:title="@string/action_about" />
 </menu>

@@ -20,10 +20,29 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_donate) {
+        switch (item.getItemId()) {
+        case R.id.action_play:
+            handlePlay();
             return true;
+        case R.id.action_live:
+            handleLive();
+            return true;
+        case R.id.action_about:
+            handleAbout();
+            return true;
+        default:
+            return super.onOptionsItemSelected(item);
         }
-        return super.onOptionsItemSelected(item);
+    }
+    
+    private void handlePlay() {
+        
+    }
+    
+    private void handleLive() {
+    }
+    
+    private void handleAbout() {
+        
     }
 }

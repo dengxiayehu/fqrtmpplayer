@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">FQRtmpPlayer</string>
-    <string name="action_donate">Donate</string>
+    <string name="action_play">Play</string>
+    <string name="action_live">Live</string>
+    <string name="action_about">About</string>
 </resources>
