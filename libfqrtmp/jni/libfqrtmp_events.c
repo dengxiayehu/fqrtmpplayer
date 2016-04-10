@@ -13,7 +13,7 @@ void libfqrtmp_event_send(libfqrtmp_event type, jlong arg1, jstring arg2)
     if (!(env = jni_get_env(THREAD_NAME)))
        return;
 
-    if (LibFQRtmp.weak_thiz)
+    if (!(*env)->IsSameObject(env, LibFQRtmp.weak_thiz, NULL))
         (*env)->CallVoidMethod(env, LibFQRtmp.weak_thiz,
                                LibFQRtmp.dispatchEventFromNativeID,
                                (jint) type, arg1, arg2);

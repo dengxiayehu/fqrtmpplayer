@@ -19,6 +19,7 @@ public class Util {
         edit.setFocusable(true);
         edit.setHint(R.string.edit_hint);
         edit.setSingleLine(true);
+        edit.setText("rtmp://192.168.200.146/live/va");
         
         AlertDialog.Builder builder =
                 new AlertDialog.Builder(activity);

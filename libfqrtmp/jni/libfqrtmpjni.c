@@ -3,8 +3,9 @@
 
 #include "native_crash_handler.h"
 #include "libfqrtmp_events.h"
-#include "version.h"
+#include "rtmp.h"
 #include "util.h"
+#include "config.h"
 
 struct LibFQRtmp LibFQRtmp;
 
@@ -12,6 +13,7 @@ struct LibFQRtmp LibFQRtmp;
 
 #define THREAD_NAME "libfqrtmpjni"
 
+static rtmp_t *r;
 static JavaVM *cached_jvm;
 
 static pthread_key_t jni_env_key;
@@ -73,13 +75,13 @@ JNI_OnLoad(JavaVM *jvm, void *reserved)
 #define GET_CLASS(clazz, str, globlal) do { \
     (clazz) = (*env)->FindClass(env, (str)); \
     if (!(clazz)) { \
-        LOGE("FindClass(%s) failed", (str)); \
+        E("FindClass(%s) failed", (str)); \
         return -1; \
     } \
     if (globlal) { \
         (clazz) = (jclass) (*env)->NewGlobalRef(env, (clazz)); \
         if (!(clazz)) { \
-            LOGE("NewGlobalRef(%s) failed", (str)); \
+            E("NewGlobalRef(%s) failed", (str)); \
             return -1; \
         } \
     } \
@@ -88,7 +90,7 @@ JNI_OnLoad(JavaVM *jvm, void *reserved)
 #define GET_ID(get, id, clazz, str, args) do { \
     (id) = (*env)->get(env, (clazz), (str), (args)); \
     if (!(id)) { \
-        LOGE(#get"(%s) failed", (str)); \
+        E(#get"(%s) failed", (str)); \
         return -1; \
     } \
 } while (0)
@@ -116,7 +118,7 @@ JNI_OnLoad(JavaVM *jvm, void *reserved)
 
     init_native_crash_handler();
 
-    LOGE("JNI interface loaded.");
+    E("JNI interface loaded.");
     return JNI_VERSION;
 }
 
@@ -139,12 +141,14 @@ JNI_OnUnload(JavaVM *jvm, void *reserved)
 
 static jstring version(JNIEnv *env, jobject thiz)
 {
-    return my_new_string(VERSION_MESSAGE);
+    return new_string(VERSION_MESSAGE);
 }
 
 static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
 {
     const char *str;
+
+    libfqrtmp_event_send(OPENING, 0, new_string(""));
 
     str = (*env)->GetStringUTFChars(env, cmdline, NULL);
     if (!str) {
@@ -155,11 +159,25 @@ static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
     LibFQRtmp.weak_thiz = (*env)->NewWeakGlobalRef(env, thiz);
     if (!LibFQRtmp.weak_thiz) goto out;
 
+    r = rtmp_init(str);
+    if (r) {
+        if (rtmp_connect(r) < 0)
+            libfqrtmp_event_send(ENCOUNTERED_ERROR,
+                                 -1001, new_string("rtmp_connect failed"));
+        else
+            libfqrtmp_event_send(CONNECTED, 0, new_string(""));
+    } else
+        libfqrtmp_event_send(ENCOUNTERED_ERROR,
+                             -1001, new_string("rtmp_init failed"));
+
 out:
     (*env)->ReleaseStringUTFChars(env, cmdline, str);
 }
 
 static void nativeRelease(JNIEnv *env, jobject thiz)
 {
+    if (r)
+        rtmp_disconnect(r);
+
     (*env)->DeleteWeakGlobalRef(env, LibFQRtmp.weak_thiz);
 }

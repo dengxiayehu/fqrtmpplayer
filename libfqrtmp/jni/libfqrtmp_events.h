@@ -10,10 +10,7 @@ extern "C" {
 typedef enum {
     OPENING,
     CONNECTED,
-    PLAYING,
-    PUSHING,
     ENCOUNTERED_ERROR,
-    NUM_EVENT
 } libfqrtmp_event;
 
 void libfqrtmp_event_send(libfqrtmp_event type, jlong arg0, jstring arg2);

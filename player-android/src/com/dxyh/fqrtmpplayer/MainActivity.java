@@ -9,6 +9,7 @@ import com.dxyh.libfqrtmp.LibFQRtmp;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -56,7 +57,7 @@ public class MainActivity extends Activity {
     private Event.Listener mListener = new Event.Listener() {
         @Override
         public void onEvent(Event event) {
-            Toast.makeText(getApplicationContext(), "event.type=" + event.type, Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "event.type=" + event.type + ", arg1=" + event.arg1 + ", arg2=" + event.arg2);
         }
     };
     
