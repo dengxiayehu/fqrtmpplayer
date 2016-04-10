@@ -148,8 +148,6 @@ static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
 {
     const char *str;
 
-    libfqrtmp_event_send(OPENING, 0, new_string(""));
-
     str = (*env)->GetStringUTFChars(env, cmdline, NULL);
     if (!str) {
         throw_IllegalArgumentException(env, "cmdline invalid");
@@ -158,6 +156,8 @@ static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
 
     LibFQRtmp.weak_thiz = (*env)->NewWeakGlobalRef(env, thiz);
     if (!LibFQRtmp.weak_thiz) goto out;
+
+    libfqrtmp_event_send(OPENING, 0, new_string(""));
 
     r = rtmp_init(str);
     if (r) {

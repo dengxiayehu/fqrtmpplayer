@@ -7,12 +7,6 @@ import android.util.Log;
 public class LibFQRtmp {
     private static final String TAG = "LibFQRtmp";
     
-    public static final int OPENING = 0;
-    public static final int CONNECTED = 1;
-    public static final int PLAYING = 2;
-    public static final int PUSHING = 3;
-    public static final int ENCOUNTERED_ERROR = 4;
-    
     private Event.Listener mEventListener = null;
     private Handler mHandler = null;
     private synchronized void dispatchEventFromNative(int eventType, long arg1, String arg2) {
