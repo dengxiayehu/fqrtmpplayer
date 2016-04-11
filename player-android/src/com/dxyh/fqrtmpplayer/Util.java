@@ -35,7 +35,8 @@ public class Util {
                .setNegativeButton(R.string.dialog_negative_btn_label, new Dialog.OnClickListener() {
                    @Override
                    public void onClick(DialogInterface dialog, int which) {
-                       negative_listener.onClick(dialog, edit.getText().toString());
+                	   if (negative_listener != null)
+                		   negative_listener.onClick(dialog, edit.getText().toString());
                    }});
         builder.show();
     }
