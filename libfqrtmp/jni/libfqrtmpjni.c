@@ -118,7 +118,7 @@ JNI_OnLoad(JavaVM *jvm, void *reserved)
 
     init_native_crash_handler();
 
-    E("JNI interface loaded.");
+    I("JNI interface loaded.");
     return JNI_VERSION;
 }
 
@@ -176,8 +176,10 @@ out:
 
 static void nativeRelease(JNIEnv *env, jobject thiz)
 {
-    if (r)
+    if (r) {
         rtmp_disconnect(r);
+        rtmp_destroy(&r);
+    }
 
     (*env)->DeleteWeakGlobalRef(env, LibFQRtmp.weak_thiz);
 }

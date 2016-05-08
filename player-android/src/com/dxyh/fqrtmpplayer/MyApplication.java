@@ -10,7 +10,7 @@ import android.content.res.Resources;
 import android.util.Log;
 
 public class MyApplication extends Application {
-    public final static String TAG = "FQRtmpPlayer/MyApplication";
+    public final static String TAG = "MyApplication";
     private static MyApplication instance;
     
     private ThreadPoolExecutor mThreadPool = new ThreadPoolExecutor(0, 2, 2, TimeUnit.SECONDS,

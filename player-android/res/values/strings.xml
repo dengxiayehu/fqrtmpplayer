@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">FQRtmpPlayer</string>
+    
     <string name="action_play">Play</string>
     <string name="action_live">Live</string>
     <string name="action_about">About</string>
+    
     <string name="edit_hint">Input rtmp url</string>
+    
     <string name="dialog_positive_btn_label">OK</string>
     <string name="dialog_negative_btn_label">Cancel</string>
+    
     <string name="press_again_exit">Press again to exit</string>
+    
     <string name="invalid_rtmp_url">Invalid rtmp url</string>
+    
+    <string name="info">Press menu to start</string>
+    
+    <string name="author">dengxiayehu</string>
 </resources>
