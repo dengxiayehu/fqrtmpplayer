@@ -141,7 +141,7 @@ public class CameraHolder {
         mKeepBeforeTime = System.currentTimeMillis() + 3000;
     }
     
-    public static int getBackFacingCameraId() {
+    public static int getCameraIdFacingBack() {
         int numOfCameras = CameraHolder.instance().getNumberOfCameras();
         Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
         for (int idx = 0; idx < numOfCameras; ++idx) {
@@ -152,7 +152,7 @@ public class CameraHolder {
         return -1;
     }
     
-    public static int getFrontFacingCameraId() {
+    public static int getCameraIdFacingFront() {
         int numOfCameras = CameraHolder.instance().getNumberOfCameras();
         Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
         for (int idx = 0; idx < numOfCameras; ++idx) {

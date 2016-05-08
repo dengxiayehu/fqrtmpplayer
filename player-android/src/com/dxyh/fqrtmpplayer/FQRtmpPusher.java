@@ -5,6 +5,7 @@ import java.util.List;
 import com.dxyh.fqrtmpplayer.camera.CameraHardwareException;
 import com.dxyh.fqrtmpplayer.camera.CameraHolder;
 import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
+import com.dxyh.fqrtmpplayer.gui.RotateImageView;
 import com.dxyh.fqrtmpplayer.gui.UiTools;
 import com.dxyh.fqrtmpplayer.util.Util;
 
@@ -24,6 +25,7 @@ import android.util.Log;
 import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.WindowManager;
 
 @SuppressWarnings("deprecation")
@@ -33,12 +35,13 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
     private static final int FIRST_TIME_INIT = 1;
     private static final int CLEAR_SCREEN_DELAY = 2;
     private static final int SET_CAMERA_PARAMETERS_WHEN_IDLE = 3;
+    private static final int AUTO_FOCUS = 4;
     
     private static final int UPDATE_PARAM_INITIALIZE = 1;
     private static final int UPDATE_PARAM_PREFERENCE = 2;
     private static final int UPDATE_PARAM_ALL = -1;
     
-    private static final float ACCEL_THRESHOLD = .5f;
+    private static final float ACCEL_THRESHOLD = .3f;
     
     private int mUpdateSet;
     
@@ -59,6 +62,7 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
     private CamcorderProfile mProfile;
     
     private int mCameraId;
+    private int mNumberOfCameras;
     
     private boolean mStartPreviewFail = false;
     
@@ -106,6 +110,12 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
                     setCameraParametersWhenIdle(0);
                     break;
                 }
+                
+                case AUTO_FOCUS: {
+                    mFocusState = FOCUSING;
+                    mCameraDevice.autoFocus(mAutoFocusCallback);
+                    break;
+                }
             }
         }
     }
@@ -115,7 +125,8 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
         
         mSurfaceView = (SurfaceView) mActivity.findViewById(R.id.camera_preview);
         
-        mCameraId = CameraHolder.getBackFacingCameraId();
+        mCameraId = CameraHolder.getCameraIdFacingBack();
+        mNumberOfCameras = CameraHolder.instance().getNumberOfCameras();
         
         mSensorManager = (SensorManager) mActivity.getSystemService(Activity.SENSOR_SERVICE);
         mAccel = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -192,6 +203,9 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
 	    Log.d(TAG, "onPause");
 
 	    mPausing = true;
+	    
+	    mSensorManager.unregisterListener(this);
+	    
         stopPreview();
         closeCamera();
         
@@ -200,8 +214,6 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
         if (mFirstTimeInitialized) {
             mOrientationListener.disable();
         }
-        
-        mSensorManager.unregisterListener(this);
         
         mHandler.removeMessages(FIRST_TIME_INIT);
 	}
@@ -294,8 +306,33 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
 	    mOrientationListener = new MyOrientationEventListener(mActivity);
         mOrientationListener.enable();
         
+        mActivity.findViewById(R.id.camera_switch_icon).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                switchCameraId((mCameraId + 1) % mNumberOfCameras);
+            }
+        });
+        
         initializeScreenBrightness();
         mFirstTimeInitialized = true;
+	}
+	
+	private void switchCameraId(int cameraId) {
+	    if (mPausing || !isCameraIdle()) {
+	        UiTools.toast(mActivity, "Camera busy, switch later", UiTools.SHORT_TOAST);
+	        return;
+	    }
+	    mCameraId = cameraId;
+	    if (mCameraId == CameraHolder.getCameraIdFacingBack()) {
+	        ((RotateImageView) mActivity.findViewById(R.id.camera_switch_icon)).setImageResource(R.drawable.ic_viewfinder_camera_facing_back);
+	    } else {
+	        ((RotateImageView) mActivity.findViewById(R.id.camera_switch_icon)).setImageResource(R.drawable.ic_viewfinder_camera_facing_front);
+	    }
+	    
+	    stopPreview();
+	    closeCamera();
+	    
+	    if (!restartPreview()) return;
 	}
 	
 	private void initializeScreenBrightness() {
@@ -432,6 +469,8 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
     }
 
     private void setOrientationIndicator(int degree) {
+        ((RotateImageView) mActivity.findViewById(
+                R.id.camera_switch_icon)).setDegree(degree);
     }
     
     private void autoFocus() {
@@ -440,8 +479,8 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
               mFocusMode.equals(Parameters.FOCUS_MODE_EDOF))) {
             Log.d(TAG, "autoFocus");
             
-            mFocusState = FOCUSING;
-            mCameraDevice.autoFocus(mAutoFocusCallback);
+            mHandler.removeMessages(AUTO_FOCUS);
+            mHandler.sendEmptyMessageDelayed(AUTO_FOCUS, 1000);
         }
     }
     
@@ -452,6 +491,7 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
                   mFocusMode.equals(Parameters.FOCUS_MODE_EDOF))) {
                 Log.d(TAG, "cancelAutoFocus");
                 
+                mHandler.removeMessages(AUTO_FOCUS);
                 mCameraDevice.cancelAutoFocus();
             }
         }
@@ -462,6 +502,9 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
         public void onAutoFocus(boolean focused, android.hardware.Camera camera) {
             Log.v(TAG, "onAutoFocus: " + focused);
             mFocusState = focused ? FOCUS_SUCCESS : FOCUS_FAIL;
+            if (mFocusState != FOCUS_SUCCESS) {
+                autoFocus();
+            }
         }
     }
     
@@ -512,13 +555,17 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
     public void onSensorChanged(SensorEvent event) {
         if (mSensorEvent == null) {
             mSensorEvent = event;
-        } else if (Math.abs(event.values[0] - mSensorEvent.values[0]) > ACCEL_THRESHOLD ||
-                   Math.abs(event.values[1] - mSensorEvent.values[1]) > ACCEL_THRESHOLD ||
-                   Math.abs(event.values[2] - mSensorEvent.values[2]) > ACCEL_THRESHOLD) {
-            if (mFocusState != FOCUSING) {
-                autoFocus();
+        } else {
+            if (Math.abs(event.values[0] - mSensorEvent.values[0]) > ACCEL_THRESHOLD ||
+                Math.abs(event.values[1] - mSensorEvent.values[1]) > ACCEL_THRESHOLD ||
+                Math.abs(event.values[2] - mSensorEvent.values[2]) > ACCEL_THRESHOLD) {
+                if (mFocusState != FOCUSING) {
+                    autoFocus();
+                } else {
+                    Log.d(TAG, "focus already in progress");
+                }
+                mSensorEvent = event;
             }
-            mSensorEvent = event;
         }
     }
 }
