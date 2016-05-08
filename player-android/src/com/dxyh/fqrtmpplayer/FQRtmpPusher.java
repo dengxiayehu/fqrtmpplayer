@@ -13,6 +13,10 @@ import android.app.Activity;
 import android.content.Context;
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.media.CamcorderProfile;
 import android.os.Handler;
 import android.os.Message;
@@ -23,7 +27,7 @@ import android.view.SurfaceView;
 import android.view.WindowManager;
 
 @SuppressWarnings("deprecation")
-public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback {
+public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, SensorEventListener {
     private static final String TAG = "FQRtmpPusher";
     
     private static final int FIRST_TIME_INIT = 1;
@@ -33,6 +37,8 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback {
     private static final int UPDATE_PARAM_INITIALIZE = 1;
     private static final int UPDATE_PARAM_PREFERENCE = 2;
     private static final int UPDATE_PARAM_ALL = -1;
+    
+    private static final float ACCEL_THRESHOLD = .5f;
     
     private int mUpdateSet;
     
@@ -73,6 +79,11 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback {
     
     private String mFocusMode;
     
+    private SensorManager mSensorManager;
+    private final Sensor mAccel;
+    
+    private SensorEvent mSensorEvent;
+    
     private final Handler mHandler = new MainHandler();
     
     @SuppressLint("HandlerLeak")
@@ -105,6 +116,9 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback {
         mSurfaceView = (SurfaceView) mActivity.findViewById(R.id.camera_preview);
         
         mCameraId = CameraHolder.getBackFacingCameraId();
+        
+        mSensorManager = (SensorManager) mActivity.getSystemService(Activity.SENSOR_SERVICE);
+        mAccel = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 	}
 	
 	@Override
@@ -158,6 +172,8 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback {
             }
         }
         keepScreenOnAwhile();
+        
+        mSensorManager.registerListener(this, mAccel, SensorManager.SENSOR_DELAY_UI);
 	}
 	
 	private void resetScreenOn() {
@@ -184,6 +200,8 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback {
         if (mFirstTimeInitialized) {
             mOrientationListener.disable();
         }
+        
+        mSensorManager.unregisterListener(this);
         
         mHandler.removeMessages(FIRST_TIME_INIT);
 	}
@@ -483,5 +501,24 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback {
     public void surfaceDestroyed(SurfaceHolder holder) {
         stopPreview();
         mSurfaceHolder = null;
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        Log.d(TAG, "onAccuracyChanged accuracy=" + accuracy);
+    }
+    
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (mSensorEvent == null) {
+            mSensorEvent = event;
+        } else if (Math.abs(event.values[0] - mSensorEvent.values[0]) > ACCEL_THRESHOLD ||
+                   Math.abs(event.values[1] - mSensorEvent.values[1]) > ACCEL_THRESHOLD ||
+                   Math.abs(event.values[2] - mSensorEvent.values[2]) > ACCEL_THRESHOLD) {
+            if (mFocusState != FOCUSING) {
+                autoFocus();
+            }
+            mSensorEvent = event;
+        }
     }
 }
