@@ -51,6 +51,7 @@ static int parse_arg(rtmp_t *r, const char *str)
     };
     int ch;
 
+    optind = 0;
     while ((ch = getopt_long(argc, (char * const *) argv,
                              ":i:L:W;", longopts, NULL)) != -1) {
         switch (ch) {
@@ -159,6 +160,14 @@ int rtmp_disconnect(rtmp_t *r)
         r->hdl = NULL;
     }
     return 0;
+}
+
+void rtmp_destroy(rtmp_t **r)
+{
+    if (*r) {
+        SAFE_FREE(*r);
+        *r = NULL;
+    }
 }
 
 static uint8_t pkttyp2channel(uint8_t typ)
