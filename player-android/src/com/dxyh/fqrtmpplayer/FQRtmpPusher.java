@@ -35,7 +35,6 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
     private static final int FIRST_TIME_INIT = 1;
     private static final int CLEAR_SCREEN_DELAY = 2;
     private static final int SET_CAMERA_PARAMETERS_WHEN_IDLE = 3;
-    private static final int AUTO_FOCUS = 4;
     
     private static final int UPDATE_PARAM_INITIALIZE = 1;
     private static final int UPDATE_PARAM_PREFERENCE = 2;
@@ -108,12 +107,6 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
                 
                 case SET_CAMERA_PARAMETERS_WHEN_IDLE: {
                     setCameraParametersWhenIdle(0);
-                    break;
-                }
-                
-                case AUTO_FOCUS: {
-                    mFocusState = FOCUSING;
-                    mCameraDevice.autoFocus(mAutoFocusCallback);
                     break;
                 }
             }
@@ -206,14 +199,14 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
 	    
 	    mSensorManager.unregisterListener(this);
 	    
+	    if (mFirstTimeInitialized) {
+	        mOrientationListener.disable();
+	    }
+	    
         stopPreview();
         closeCamera();
         
         resetScreenOn();
-        
-        if (mFirstTimeInitialized) {
-            mOrientationListener.disable();
-        }
         
         mHandler.removeMessages(FIRST_TIME_INIT);
 	}
@@ -324,9 +317,9 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
 	    }
 	    mCameraId = cameraId;
 	    if (mCameraId == CameraHolder.getCameraIdFacingBack()) {
-	        ((RotateImageView) mActivity.findViewById(R.id.camera_switch_icon)).setImageResource(R.drawable.ic_viewfinder_camera_facing_back);
-	    } else {
 	        ((RotateImageView) mActivity.findViewById(R.id.camera_switch_icon)).setImageResource(R.drawable.ic_viewfinder_camera_facing_front);
+	    } else {
+	        ((RotateImageView) mActivity.findViewById(R.id.camera_switch_icon)).setImageResource(R.drawable.ic_viewfinder_camera_facing_back);
 	    }
 	    
 	    stopPreview();
@@ -474,13 +467,17 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
     }
     
     private void autoFocus() {
+        if (mFocusState == FOCUSING) {
+            return;
+        }
+        
         if (!(mFocusMode.equals(Parameters.FOCUS_MODE_INFINITY) ||
               mFocusMode.equals(Parameters.FOCUS_MODE_FIXED) ||
               mFocusMode.equals(Parameters.FOCUS_MODE_EDOF))) {
             Log.d(TAG, "autoFocus");
             
-            mHandler.removeMessages(AUTO_FOCUS);
-            mHandler.sendEmptyMessageDelayed(AUTO_FOCUS, 1000);
+            mFocusState = FOCUSING;
+            mCameraDevice.autoFocus(mAutoFocusCallback);
         }
     }
     
@@ -491,7 +488,6 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
                   mFocusMode.equals(Parameters.FOCUS_MODE_EDOF))) {
                 Log.d(TAG, "cancelAutoFocus");
                 
-                mHandler.removeMessages(AUTO_FOCUS);
                 mCameraDevice.cancelAutoFocus();
             }
         }
