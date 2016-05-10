@@ -2,9 +2,8 @@ package com.dxyh.fqrtmpplayer;
 
 import android.app.Activity;
 
-public class FQRtmpPlayer extends FQRtmpBase {
+public class FQRtmpPlayer implements IFQRtmp {
 	public FQRtmpPlayer(Activity activity, int layoutResID) {
-		super(activity, layoutResID);
 	}
 	
 	@Override
@@ -21,6 +20,5 @@ public class FQRtmpPlayer extends FQRtmpBase {
 	
 	@Override
 	public void close() {
-		super.close();
 	}
 }

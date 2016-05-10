@@ -2,13 +2,6 @@ package com.dxyh.fqrtmpplayer;
 
 import java.util.List;
 
-import com.dxyh.fqrtmpplayer.camera.CameraHardwareException;
-import com.dxyh.fqrtmpplayer.camera.CameraHolder;
-import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
-import com.dxyh.fqrtmpplayer.gui.RotateImageView;
-import com.dxyh.fqrtmpplayer.gui.UiTools;
-import com.dxyh.fqrtmpplayer.util.Util;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -18,6 +11,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.AudioRecord;
 import android.media.CamcorderProfile;
 import android.os.Handler;
 import android.os.Message;
@@ -28,8 +22,16 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 
+import com.dxyh.fqrtmpplayer.camera.CameraHardwareException;
+import com.dxyh.fqrtmpplayer.camera.CameraHolder;
+import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
+import com.dxyh.fqrtmpplayer.gui.RotateImageView;
+import com.dxyh.fqrtmpplayer.gui.UiTools;
+import com.dxyh.fqrtmpplayer.util.Util;
+import com.dxyh.libfqrtmp.LibFQRtmp;
+
 @SuppressWarnings("deprecation")
-public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, SensorEventListener {
+public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEventListener {
     private static final String TAG = "FQRtmpPusher";
     
     private static final int FIRST_TIME_INIT = 1;
@@ -41,6 +43,9 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
     private static final int UPDATE_PARAM_ALL = -1;
     
     private static final float ACCEL_THRESHOLD = .3f;
+    
+    private Activity mActivity;
+	private LibFQRtmp mLibFQRtmp;
     
     private int mUpdateSet;
     
@@ -87,6 +92,12 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
     
     private SensorEvent mSensorEvent;
     
+    private MyApplication.VideoConfig mVideoConfig;
+    private MyApplication.AudioConfig mAudioConfig;
+    
+    private AudioRecord mAudioRecord;
+    private int mAudioMinBufferSize;
+    
     private final Handler mHandler = new MainHandler();
     
     @SuppressLint("HandlerLeak")
@@ -114,7 +125,10 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
     }
     
 	public FQRtmpPusher(Activity activity, int layoutResID) {
-        super(activity, layoutResID);
+        mActivity = activity;
+		mActivity.setContentView(layoutResID);
+		
+		mLibFQRtmp = new LibFQRtmp();
         
         mSurfaceView = (SurfaceView) mActivity.findViewById(R.id.camera_preview);
         
@@ -123,6 +137,10 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
         
         mSensorManager = (SensorManager) mActivity.getSystemService(Activity.SENSOR_SERVICE);
         mAccel = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        
+        mAudioConfig = MyApplication.getInstance().getAudioConfig();
+        mAudioMinBufferSize = AudioRecord.getMinBufferSize(
+        		mAudioConfig.getSamplerate(), mAudioConfig.getChannel(), mAudioConfig.getEncoding());
 	}
 	
 	@Override
@@ -221,7 +239,8 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
 	    
 	    closeCamera();
 	    
-	    super.close();
+	    mLibFQRtmp.stop();
+		mActivity.setContentView(R.layout.info);
 	}
 	
 	private void ensureCameraDevice() throws CameraHardwareException {
@@ -350,12 +369,9 @@ public class FQRtmpPusher extends FQRtmpBase implements SurfaceHolder.Callback, 
         mCameraDevice.setParameters(mParameters);
     }
 	
-	private int chooseQuality() {
-	    return CamcorderProfile.QUALITY_HIGH;
-	}
-	
 	private void updateCameraParametersInitialize() {
-	    mProfile = CamcorderProfile.get(mCameraId, chooseQuality());
+	    mProfile = CamcorderProfile.get(mCameraId,
+	    		MyApplication.getInstance().getVideoConfig().getCamcorderProfileId());
 	    
         List<Integer> frameRates = mParameters.getSupportedPreviewFrameRates();
         if (frameRates != null && frameRates.contains(Integer.valueOf(mProfile.videoFrameRate))) {

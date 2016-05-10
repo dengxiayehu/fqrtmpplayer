@@ -83,9 +83,8 @@ out:
 
 static int check_arg(rtmp_t *r)
 {
-    if ((!r->input && !r->live) ||
-        (r->input && r->live)) {
-        E("Option -i and -L can't be both set or unset");
+    if (!r->live) {
+        E("Missing option -L");
         return -1;
     }
     return 0;
@@ -116,8 +115,7 @@ int rtmp_connect(rtmp_t *r)
     RTMP_LogSetLevel(RTMP_LOGLEVEL);
     RTMP_LogSetCallback(rtmp_log);
 
-    if (!RTMP_SetupURL(r->hdl,
-                       (char *)(r->input?r->input:r->live))) {
+    if (!RTMP_SetupURL(r->hdl, (char *) r->live)) {
         E("RTMP_SetupURL() failed");
         goto bail;
     }
