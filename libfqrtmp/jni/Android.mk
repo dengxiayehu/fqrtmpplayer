@@ -10,15 +10,15 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := fdk-aac
 
-LOCAL_SRC_FILES := ../../contrib/install/lib/libfdk-aac.so
-include $(PREBUILT_SHARED_LIBRARY)
+LOCAL_SRC_FILES := ../../contrib/install/lib/libfdk-aac.a
+include $(PREBUILT_STATIC_LIBRARY)
 ###################################
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := x264
 
-LOCAL_SRC_FILES := ../../contrib/install/lib/libx264.so
-include $(PREBUILT_SHARED_LIBRARY)
+LOCAL_SRC_FILES := ../../contrib/install/lib/libx264.a
+include $(PREBUILT_STATIC_LIBRARY)
 ###################################
 include $(CLEAR_VARS)
 
@@ -35,5 +35,6 @@ LOCAL_SRC_FILES := libfqrtmpjni.c \
 
 LOCAL_C_INCLUDES := $(PRIVATE_INCDIR)
 LOCAL_LDLIBS := -llog
-LOCAL_SHARED_LIBRARIES := rtmp fdk-aac x264
+LOCAL_SHARED_LIBRARIES := rtmp
+LOCAL_STATIC_LIBRARIES := fdk-aac x264
 include $(BUILD_SHARED_LIBRARY)

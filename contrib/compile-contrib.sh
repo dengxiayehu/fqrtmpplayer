@@ -47,14 +47,14 @@ TARS_HDLR_ARR=(
 function compile_openssl() {
     ./Configure android-armv7 zlib-dynamic no-shared --prefix="$INSTALL_DIR" --cross-compile-prefix="$TOOLCHAIN_PREFIX" &&
         make depend &&
-        make $MAKEFLAGS &&
+        make $MKFLAGS &&
         make install && return 0
     return 1
 }
 
 function compile_rtmpdump() {
     sed -i 's/=-lpthread\>/=-pthread/g' Makefile
-    make $MAKEFLAGS CROSS_COMPILE="$TOOLCHAIN_PREFIX" \
+    make $MKFLAGS CROSS_COMPILE="$TOOLCHAIN_PREFIX" \
          INC=-I"$INSTALL_DIR/include" XLDFLAGS=-L"$INSTALL_DIR"/lib \
          prefix="$INSTALL_DIR" \
          install && return 0
@@ -62,15 +62,15 @@ function compile_rtmpdump() {
 }
 
 function compile_fdk-aac() {
-    ./configure --host="${TOOLCHAIN_PREFIX%-}" --prefix="$INSTALL_DIR" && \
-        make $MAKEFLAGS &&
+    ./configure --host="${TOOLCHAIN_PREFIX%-}" --prefix="$INSTALL_DIR" --enable-static=yes --enable-shared=no && \
+        make $MKFLAGS &&
         make install && return 0
     return 1
 }
 
 function compile_x264() {
-    ./configure --prefix="$INSTALL_DIR" --host=arm-linux --cross-prefix="$TOOLCHAIN_PATH/bin/$TOOLCHAIN_PREFIX" --sysroot="$CROSS_SYSROOT" --enable-shared --enable-static --enable-pic --enable-strip --disable-lavf --disable-avs --disable-swscale --extra-cflags="-march=armv7-a -fomit-frame-pointer -mfloat-abi=softfp -mfpu=neon" && \
-        make $MAKEFLAGS && \
+    ./configure --prefix="$INSTALL_DIR" --host=arm-linux --cross-prefix="$TOOLCHAIN_PATH/bin/$TOOLCHAIN_PREFIX" --sysroot="$CROSS_SYSROOT" --enable-static --enable-pic --enable-strip --disable-lavf --disable-avs --disable-swscale --extra-cflags="-DANDROID -march=armv7-a -mtune=cortex-a8 -mfloat-abi=softfp -mfpu=neon -Wno-psabi -msoft-float -Os -fomit-frame-pointer -fno-strict-aliasing -finline-limit=64" && \
+        make $MKFLAGS && \
         make install && return 0
     return 1
 }

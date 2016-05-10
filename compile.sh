@@ -8,11 +8,11 @@ if [ -z "$ANDROID_NDK" -o -z "$ANDROID_SDK" ]; then
 fi
 
 UNAMES=$(uname -s)
-export MAKEFLAGS=
+export MKFLAGS=
 if which nproc >/dev/null; then
-    export MAKEFLAGS=-j`nproc`
+    export MKFLAGS=-j`nproc`
 else
-    export MAKEFLAGS=-j`cat /proc/cpuinfo | grep '^processor.*: *[0-9]*' | wc -l`
+    export MKFLAGS=-j`cat /proc/cpuinfo | grep '^processor.*: *[0-9]*' | wc -l`
 fi
 
 bash contrib/compile-contrib.sh
