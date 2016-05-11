@@ -34,7 +34,7 @@ import com.dxyh.fqrtmpplayer.util.Util;
 import com.dxyh.libfqrtmp.LibFQRtmp;
 
 @SuppressWarnings("deprecation")
-public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEventListener, OnRecordPositionUpdateListener {
+public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEventListener, OnRecordPositionUpdateListener, Camera.PreviewCallback {
     private static final String TAG = "FQRtmpPusher";
     
     private static final int FIRST_TIME_INIT = 1;
@@ -46,6 +46,8 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
     private static final int UPDATE_PARAM_ALL = -1;
     
     private static final float ACCEL_THRESHOLD = .3f;
+    
+    private static final int AUDIO_FRAME_PERIOD = 120; // In Milliseconds
     
     private Activity mActivity;
 	private LibFQRtmp mLibFQRtmp;
@@ -223,9 +225,9 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
     					samplerates[idx], mAudioConfig.getChannel(), mAudioConfig.getEncoding()));
     			mAudioConfig.setSamplerate(samplerates[idx]);
     			
-    			int framePeriod = 1024;
+    			int framePeriod = mAudioConfig.getSamplerate() * AUDIO_FRAME_PERIOD / 1000;
     			int bufferSize =
-    					framePeriod * 2 * mAudioConfig.getChannelCount() * mAudioConfig.getBitsPerSample();
+    					framePeriod * 2 * mAudioConfig.getChannelCount() * mAudioConfig.getBitsPerSample() / 8;
     			Log.d(TAG, "framePeriod=" + framePeriod + " <--> bufferSize=" + bufferSize);
     			if (bufferSize < minBufferSize) {
     				bufferSize = minBufferSize;
@@ -258,6 +260,7 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
 	private void stopRecordingAudio() {
 		if (mAudioRecord != null) {
 			if (mAudioRecord.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
+				mAudioRecord.setRecordPositionUpdateListener(null);
 				mAudioRecord.stop();
 			}
 			mAudioRecord.release();
@@ -329,6 +332,8 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
         ensureCameraDevice();
 
         if (mPreviewing) stopPreview();
+        
+        mProfile = CamcorderProfile.get(mCameraId, mVideoConfig.getCamcorderProfileId());
 
         setPreviewDisplay(mSurfaceHolder);
         Util.setCameraDisplayOrientation(mActivity, mCameraId, mCameraDevice);
@@ -353,6 +358,7 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
         if (mCameraDevice != null && mPreviewing) {
             Log.d(TAG, "stopPreview");
             cancelAutoFocus();
+            mCameraDevice.setPreviewCallbackWithBuffer(null);
             mCameraDevice.stopPreview();
         }
         mPreviewing = false;
@@ -368,7 +374,18 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
         return true;
     }
 	
+	private static int calcRawBufferSize(int width, int height) {
+		int stride = (int) Math.ceil(width / 16.0) * 16;
+        int ySize = stride * height;
+        int cStride = (int) Math.ceil(width / 32.0) * 16;
+        int cSize = cStride * height / 2;
+        return ySize + cSize * 2;
+	}
+	
 	private void setPreviewDisplay(SurfaceHolder holder) {
+		byte buffer[] = new byte[calcRawBufferSize(mProfile.videoFrameWidth, mProfile.videoFrameHeight)];
+		mCameraDevice.addCallbackBuffer(buffer);
+		mCameraDevice.setPreviewCallbackWithBuffer(this);
         try {
             mCameraDevice.setPreviewDisplay(holder);
         } catch (Throwable ex) {
@@ -444,8 +461,6 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
     }
 	
 	private void updateCameraParametersInitialize() {
-	    mProfile = CamcorderProfile.get(mCameraId, mVideoConfig.getCamcorderProfileId());
-	    
         List<Integer> frameRates = mParameters.getSupportedPreviewFrameRates();
         if (frameRates != null && frameRates.contains(Integer.valueOf(mProfile.videoFrameRate))) {
             Log.d(TAG, "set fps " + mProfile.videoFrameRate);
@@ -660,6 +675,13 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
 
 	@Override
 	public void onPeriodicNotification(AudioRecord audioRecord) {
-		audioRecord.read(mAudioBuffer, 0, mAudioBuffer.length);
+		int readSize = audioRecord.read(mAudioBuffer, 0, mAudioBuffer.length);
+		Log.d(TAG, "Audio read, size=" + readSize);
+	}
+
+	@Override
+	public void onPreviewFrame(byte[] data, Camera camera) {
+		Log.d(TAG, "Preview callback");
+		camera.addCallbackBuffer(data);
 	}
 }
