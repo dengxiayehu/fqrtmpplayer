@@ -34,11 +34,34 @@ public class MyApplication extends Application {
     	public int getSamplerate() {
     		return mSamplerateInHz;
     	}
+    	public void setSamplerate(int samplerate) {
+    		mSamplerateInHz = samplerate;
+    	}
     	public int getChannel() {
     		return mChannel;
     	}
+    	public int getChannelCount() {
+    		switch (mChannel) {
+    		case AudioFormat.CHANNEL_IN_MONO:
+    			return 1;
+    		case AudioFormat.CHANNEL_IN_STEREO:
+    			return 2;
+			default:
+				return -1;
+    		}
+    	}
     	public int getEncoding() {
     		return mEncoding;
+    	}
+    	public int getBitsPerSample() {
+    		switch (mEncoding) {
+    		case AudioFormat.ENCODING_PCM_16BIT:
+    			return 16;
+    		case AudioFormat.ENCODING_PCM_8BIT:
+    			return 8;
+			default:
+				return -1;
+    		}
     	}
     }
     

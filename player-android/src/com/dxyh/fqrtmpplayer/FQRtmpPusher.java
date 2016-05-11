@@ -12,8 +12,11 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioRecord;
+import android.media.AudioRecord.OnRecordPositionUpdateListener;
 import android.media.CamcorderProfile;
+import android.media.MediaRecorder.AudioSource;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Message;
 import android.util.Log;
 import android.view.OrientationEventListener;
@@ -31,7 +34,7 @@ import com.dxyh.fqrtmpplayer.util.Util;
 import com.dxyh.libfqrtmp.LibFQRtmp;
 
 @SuppressWarnings("deprecation")
-public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEventListener {
+public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEventListener, OnRecordPositionUpdateListener {
     private static final String TAG = "FQRtmpPusher";
     
     private static final int FIRST_TIME_INIT = 1;
@@ -92,12 +95,16 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
     
     private SensorEvent mSensorEvent;
     
-    private MyApplication.VideoConfig mVideoConfig;
-    private MyApplication.AudioConfig mAudioConfig;
+    private MyApplication.VideoConfig mVideoConfig =
+    		MyApplication.getInstance().getVideoConfig();
+    private MyApplication.AudioConfig mAudioConfig =
+    		MyApplication.getInstance().getAudioConfig();
     
     private AudioRecord mAudioRecord;
-    private int mAudioMinBufferSize;
+    private byte[] mAudioBuffer;
     
+    private HandlerThread mAudioHandlerThread = null;
+
     private final Handler mHandler = new MainHandler();
     
     @SuppressLint("HandlerLeak")
@@ -137,10 +144,6 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
         
         mSensorManager = (SensorManager) mActivity.getSystemService(Activity.SENSOR_SERVICE);
         mAccel = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        
-        mAudioConfig = MyApplication.getInstance().getAudioConfig();
-        mAudioMinBufferSize = AudioRecord.getMinBufferSize(
-        		mAudioConfig.getSamplerate(), mAudioConfig.getChannel(), mAudioConfig.getEncoding());
 	}
 	
 	@Override
@@ -182,6 +185,13 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
 	    
 	    mPausing = false;
 	    
+	    MyApplication.runBackground(new Runnable() {
+	    	@Override
+	    	public void run() {
+	    		startRecordingAudio();
+	    	}
+	    });
+
 	    if (!mPreviewing && !mStartPreviewFail) {
             if (!restartPreview()) return;
         }
@@ -196,6 +206,68 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
         keepScreenOnAwhile();
         
         mSensorManager.registerListener(this, mAccel, SensorManager.SENSOR_DELAY_UI);
+	}
+	
+	private int startRecordingAudio() {
+		mAudioHandlerThread = new HandlerThread(TAG);
+		mAudioHandlerThread.start();
+		
+		Handler audioHandler = new Handler(mAudioHandlerThread.getLooper());
+		
+		final int[] samplerates = { mAudioConfig.getSamplerate(), 44100, 22050, 8000 };
+    	for (int idx = 0; idx < samplerates.length; ++idx) {
+    		int minBufferSize = AudioRecord.getMinBufferSize(
+            		samplerates[idx], mAudioConfig.getChannel(), mAudioConfig.getEncoding());
+    		if (minBufferSize > 0) {
+    			Log.d(TAG, String.format("AudioRecord with configuration: samplerate(%d) channel(%d) encoding(%d)",
+    					samplerates[idx], mAudioConfig.getChannel(), mAudioConfig.getEncoding()));
+    			mAudioConfig.setSamplerate(samplerates[idx]);
+    			
+    			int framePeriod = 1024;
+    			int bufferSize =
+    					framePeriod * 2 * mAudioConfig.getChannelCount() * mAudioConfig.getBitsPerSample();
+    			Log.d(TAG, "framePeriod=" + framePeriod + " <--> bufferSize=" + bufferSize);
+    			if (bufferSize < minBufferSize) {
+    				bufferSize = minBufferSize;
+    				framePeriod =
+    						bufferSize / (2 * mAudioConfig.getChannelCount() * mAudioConfig.getBitsPerSample() / 8);
+    				Log.w(TAG, "increasing bufferSize to " + minBufferSize);
+    			}
+    			
+    			mAudioRecord = new AudioRecord(AudioSource.MIC,
+    					mAudioConfig.getSamplerate(), mAudioConfig.getChannel(), mAudioConfig.getEncoding(),
+    					bufferSize);
+    			if (mAudioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+    				stopRecordingAudio();
+    				Log.e(TAG, "init AudioRecord failed, try again");
+    				continue;
+    			}
+    			
+    			mAudioRecord.setRecordPositionUpdateListener(this, audioHandler);
+    			mAudioRecord.setPositionNotificationPeriod(framePeriod);
+    			
+    			mAudioRecord.startRecording();
+    			mAudioBuffer = new byte[bufferSize/2];
+    			mAudioRecord.read(mAudioBuffer, 0, mAudioBuffer.length);
+    			return 0;
+    		}
+    	}
+    	return -1;
+	}
+	
+	private void stopRecordingAudio() {
+		if (mAudioRecord != null) {
+			if (mAudioRecord.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
+				mAudioRecord.stop();
+			}
+			mAudioRecord.release();
+			mAudioRecord = null;
+		}
+		
+		if (mAudioHandlerThread != null && mAudioHandlerThread.isAlive()) {
+			mAudioHandlerThread.quit();
+			mAudioHandlerThread = null;
+		}
 	}
 	
 	private void resetScreenOn() {
@@ -220,6 +292,8 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
 	    if (mFirstTimeInitialized) {
 	        mOrientationListener.disable();
 	    }
+	    
+	    stopRecordingAudio();
 	    
         stopPreview();
         closeCamera();
@@ -370,8 +444,7 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
     }
 	
 	private void updateCameraParametersInitialize() {
-	    mProfile = CamcorderProfile.get(mCameraId,
-	    		MyApplication.getInstance().getVideoConfig().getCamcorderProfileId());
+	    mProfile = CamcorderProfile.get(mCameraId, mVideoConfig.getCamcorderProfileId());
 	    
         List<Integer> frameRates = mParameters.getSupportedPreviewFrameRates();
         if (frameRates != null && frameRates.contains(Integer.valueOf(mProfile.videoFrameRate))) {
@@ -580,4 +653,13 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
             }
         }
     }
+
+	@Override
+	public void onMarkerReached(AudioRecord audioRecord) {
+	}
+
+	@Override
+	public void onPeriodicNotification(AudioRecord audioRecord) {
+		audioRecord.read(mAudioBuffer, 0, mAudioBuffer.length);
+	}
 }
