@@ -1,11 +1,77 @@
 package com.dxyh.libfqrtmp;
 
+import android.media.AudioFormat;
+import android.media.CamcorderProfile;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
 public class LibFQRtmp {
     private static final String TAG = "LibFQRtmp";
+    
+    private VideoConfig mVideoConfig = new VideoConfig();
+    private AudioConfig mAudioConfig = new AudioConfig();
+    
+    public class VideoConfig {
+    	private int mCamcorderProfileId = CamcorderProfile.QUALITY_HIGH;
+    	
+    	public int getCamcorderProfileId() {
+    		return mCamcorderProfileId;
+    	}
+    }
+    
+    public class AudioConfig {
+    	private int mSamplerateInHz = 11025;
+    	private int mChannel = AudioFormat.CHANNEL_IN_MONO;
+    	private int mEncoding = AudioFormat.ENCODING_PCM_16BIT;
+    	
+    	public int getSamplerate() {
+    		return mSamplerateInHz;
+    	}
+    	public void setSamplerate(int samplerate) {
+    		mSamplerateInHz = samplerate;
+    	}
+    	public int getChannel() {
+    		return mChannel;
+    	}
+    	public int getChannelCount() {
+    		switch (mChannel) {
+    		case AudioFormat.CHANNEL_IN_MONO:
+    			return 1;
+    		case AudioFormat.CHANNEL_IN_STEREO:
+    			return 2;
+			default:
+				return -1;
+    		}
+    	}
+    	public int getEncoding() {
+    		return mEncoding;
+    	}
+    	public int getBitsPerSample() {
+    		switch (mEncoding) {
+    		case AudioFormat.ENCODING_PCM_16BIT:
+    			return 16;
+    		case AudioFormat.ENCODING_PCM_8BIT:
+    			return 8;
+			default:
+				return -1;
+    		}
+    	}
+    }
+    
+    public VideoConfig getVideoConfig() {
+	    return mVideoConfig;
+	}
+	public void setVideoConfig(VideoConfig videoConfig) {
+		mVideoConfig = videoConfig;
+	}
+	
+	public AudioConfig getAudioConfig() {
+	    return mAudioConfig;
+	}
+	public void setAudioConfig(AudioConfig audioConfig) {
+		mAudioConfig = audioConfig;
+	}
     
     private Event.Listener mEventListener = null;
     private Handler mHandler = null;
@@ -49,8 +115,15 @@ public class LibFQRtmp {
     }
     
     public native String version();
+    
     private native void nativeNew(String cmdline);
     private native void nativeRelease();
+    
+    public native int sendRawAudio(byte[] data, int length);
+    public native int sendRawVideo(byte[] data, int length);
+    
+    public native int openAudioEncoder(AudioConfig audioConfig);
+    public native int closeAudioEncoder();
     
     private static OnNativeCrashListener sOnNativeCrashListener;
     

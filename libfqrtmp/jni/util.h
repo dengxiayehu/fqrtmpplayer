@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <libgen.h>
 #include <errno.h>
 #include <jni.h>
 #include <librtmp/log.h>
@@ -13,11 +14,11 @@
 #define LOG_TAG "FQRtmp"
 #endif
 
-#define V(fmt, ...) libfqrtmp_log_print(__FILE__, __LINE__, ANDROID_LOG_VERBOSE, LOG_TAG, fmt, ##__VA_ARGS__)
-#define D(fmt, ...) libfqrtmp_log_print(__FILE__, __LINE__, ANDROID_LOG_DEBUG, LOG_TAG, fmt, ##__VA_ARGS__)
-#define I(fmt, ...) libfqrtmp_log_print(__FILE__, __LINE__, ANDROID_LOG_INFO, LOG_TAG, fmt, ##__VA_ARGS__)
-#define W(fmt, ...) libfqrtmp_log_print(__FILE__, __LINE__, ANDROID_LOG_WARN, LOG_TAG, fmt, ##__VA_ARGS__)
-#define E(fmt, ...) libfqrtmp_log_print(__FILE__, __LINE__, ANDROID_LOG_ERROR, LOG_TAG, fmt, ##__VA_ARGS__)
+#define V(fmt, ...) libfqrtmp_log_print(basename(__FILE__), __LINE__, ANDROID_LOG_VERBOSE, LOG_TAG, fmt, ##__VA_ARGS__)
+#define D(fmt, ...) libfqrtmp_log_print(basename(__FILE__), __LINE__, ANDROID_LOG_DEBUG, LOG_TAG, fmt, ##__VA_ARGS__)
+#define I(fmt, ...) libfqrtmp_log_print(basename(__FILE__), __LINE__, ANDROID_LOG_INFO, LOG_TAG, fmt, ##__VA_ARGS__)
+#define W(fmt, ...) libfqrtmp_log_print(basename(__FILE__), __LINE__, ANDROID_LOG_WARN, LOG_TAG, fmt, ##__VA_ARGS__)
+#define E(fmt, ...) libfqrtmp_log_print(basename(__FILE__), __LINE__, ANDROID_LOG_ERROR, LOG_TAG, fmt, ##__VA_ARGS__)
 
 #define NELEM(arr)  (sizeof(arr)/sizeof(arr[0]))
 

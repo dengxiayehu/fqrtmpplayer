@@ -21,11 +21,19 @@ static pthread_key_t jni_env_key;
 static jstring version(JNIEnv *, jobject);
 static void nativeNew(JNIEnv *, jobject, jstring cmdline);
 static void nativeRelease(JNIEnv *, jobject);
+static jint sendRawAudio(JNIEnv *, jobject, jbyteArray, jint);
+static jint sendRawVideo(JNIEnv *, jobject, jbyteArray, jint);
+static jint openAudioEncoder(JNIEnv *env, jobject, jobject);
+static jint closeAudioEncoder(JNIEnv *env, jobject);
 
 static JNINativeMethod method[] = {
     {"version", "()Ljava/lang/String;", (void *) version},
     {"nativeNew", "(Ljava/lang/String;)V", (void *) nativeNew},
     {"nativeRelease", "()V", (void *) nativeRelease},
+    {"sendRawAudio", "([BI)I", (void *) sendRawAudio},
+    {"sendRawVideo", "([BI)I", (void *) sendRawVideo},
+    {"openAudioEncoder", "(Lcom/dxyh/libfqrtmp/LibFQRtmp$AudioConfig;)I", (void *) openAudioEncoder},
+    {"closeAudioEncoder", "()I", (void *) closeAudioEncoder},
 };
 
 static void jni_detach_thread(void *data)
@@ -155,20 +163,25 @@ static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
     }
 
     LibFQRtmp.weak_thiz = (*env)->NewWeakGlobalRef(env, thiz);
-    if (!LibFQRtmp.weak_thiz) goto out;
+    if (!LibFQRtmp.weak_thiz) {
+        E("Create weak-reference for libfqrtmp instance failed");
+        goto out;
+    }
 
     libfqrtmp_event_send(OPENING, 0, new_string(""));
 
     r = rtmp_init(str);
     if (r) {
-        if (rtmp_connect(r) < 0)
+        if (rtmp_connect(r) < 0) {
             libfqrtmp_event_send(ENCOUNTERED_ERROR,
                                  -1001, new_string("rtmp_connect failed"));
-        else
+        } else {
             libfqrtmp_event_send(CONNECTED, 0, new_string(""));
-    } else
+        }
+    } else {
         libfqrtmp_event_send(ENCOUNTERED_ERROR,
                              -1001, new_string("rtmp_init failed"));
+    }
 
 out:
     (*env)->ReleaseStringUTFChars(env, cmdline, str);
@@ -181,5 +194,27 @@ static void nativeRelease(JNIEnv *env, jobject thiz)
         rtmp_destroy(&r);
     }
 
-    (*env)->DeleteWeakGlobalRef(env, LibFQRtmp.weak_thiz);
+    if (!(*env)->IsSameObject(env, LibFQRtmp.weak_thiz, NULL)) {
+        (*env)->DeleteWeakGlobalRef(env, LibFQRtmp.weak_thiz);
+    }
+}
+
+static jint sendRawAudio(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
+{
+    return 0;
+}
+
+static jint sendRawVideo(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
+{
+    return 0;
+}
+
+static jint openAudioEncoder(JNIEnv *env, jobject thiz, jobject audio_config)
+{
+    return 0;
+}
+
+static jint closeAudioEncoder(JNIEnv *env, jobject thiz)
+{
+    return 0;
 }

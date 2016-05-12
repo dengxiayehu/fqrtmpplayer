@@ -31,15 +31,19 @@ import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
 import com.dxyh.fqrtmpplayer.gui.RotateImageView;
 import com.dxyh.fqrtmpplayer.gui.UiTools;
 import com.dxyh.fqrtmpplayer.util.Util;
+import com.dxyh.libfqrtmp.Event;
 import com.dxyh.libfqrtmp.LibFQRtmp;
 
 @SuppressWarnings("deprecation")
-public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEventListener, OnRecordPositionUpdateListener, Camera.PreviewCallback {
+public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
+		SensorEventListener, OnRecordPositionUpdateListener,
+		Camera.PreviewCallback, Event.Listener {
     private static final String TAG = "FQRtmpPusher";
     
     private static final int FIRST_TIME_INIT = 1;
     private static final int CLEAR_SCREEN_DELAY = 2;
     private static final int SET_CAMERA_PARAMETERS_WHEN_IDLE = 3;
+    private static final int ERROR_OCCURRED = 4;
     
     private static final int UPDATE_PARAM_INITIALIZE = 1;
     private static final int UPDATE_PARAM_PREFERENCE = 2;
@@ -50,7 +54,10 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
     private static final int AUDIO_FRAME_PERIOD = 120; // In Milliseconds
     
     private Activity mActivity;
-	private LibFQRtmp mLibFQRtmp;
+    
+	private LibFQRtmp mLibFQRtmp = new LibFQRtmp();
+    private LibFQRtmp.VideoConfig mVideoConfig = mLibFQRtmp.getVideoConfig();
+    private LibFQRtmp.AudioConfig mAudioConfig = mLibFQRtmp.getAudioConfig();
     
     private int mUpdateSet;
     
@@ -73,6 +80,7 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
     private int mCameraId;
     private int mNumberOfCameras;
     
+    private boolean mServerConnected = false;
     private boolean mStartPreviewFail = false;
     
     private boolean mPreviewing;
@@ -96,11 +104,6 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
     private final Sensor mAccel;
     
     private SensorEvent mSensorEvent;
-    
-    private MyApplication.VideoConfig mVideoConfig =
-    		MyApplication.getInstance().getVideoConfig();
-    private MyApplication.AudioConfig mAudioConfig =
-    		MyApplication.getInstance().getAudioConfig();
     
     private AudioRecord mAudioRecord;
     private byte[] mAudioBuffer;
@@ -129,6 +132,11 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
                     setCameraParametersWhenIdle(0);
                     break;
                 }
+                
+                case ERROR_OCCURRED: {
+                	close();
+                	break;
+                }
             }
         }
     }
@@ -137,8 +145,6 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
         mActivity = activity;
 		mActivity.setContentView(layoutResID);
 		
-		mLibFQRtmp = new LibFQRtmp();
-        
         mSurfaceView = (SurfaceView) mActivity.findViewById(R.id.camera_preview);
         
         mCameraId = CameraHolder.getCameraIdFacingBack();
@@ -151,6 +157,17 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
 	@Override
 	public void process(final String url) {
 	    Log.d(TAG, "process");
+	    
+	    mLibFQRtmp.setEventListener(this);
+	    Thread startLibFQRtmpThread = new Thread() {
+	    	@Override
+	    	public void run() {
+	    		mServerConnected = false;
+	    		mLibFQRtmp.start("-L " + url);
+	    	}
+	    };
+	    startLibFQRtmpThread.start();
+	    
 	    
 	    Thread startPreviewThread = new Thread(new Runnable() {
             public void run() {
@@ -169,9 +186,17 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
         holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         
         try {
+			startLibFQRtmpThread.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return;
+		}
+        
+        try {
             startPreviewThread.join();
             if (mStartPreviewFail) {
                 Log.e(TAG, "startPreview failed in thread");
+                mHandler.sendEmptyMessage(ERROR_OCCURRED);
                 return;
             }
         } catch (InterruptedException e) {
@@ -179,6 +204,23 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
         }
         
         onResume();
+	}
+
+	@Override
+	public void onEvent(Event event) {
+		switch (event.type) {
+		case Event.OPENING:
+			break;
+		case Event.CONNECTED:
+			mServerConnected = true;
+			break;
+		case Event.ENCOUNTERED_ERROR:
+			UiTools.toast(mActivity, "Connect to server failed", UiTools.SHORT_TOAST);
+			mHandler.sendEmptyMessage(ERROR_OCCURRED);
+			break;
+		default:
+			break;
+		}
 	}
 	
 	@Override
@@ -245,6 +287,11 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
     				continue;
     			}
     			
+    			if (mLibFQRtmp.openAudioEncoder(mAudioConfig) < 0) {
+    				mHandler.sendEmptyMessage(ERROR_OCCURRED);
+    				return -1;
+    			}
+    			
     			mAudioRecord.setRecordPositionUpdateListener(this, audioHandler);
     			mAudioRecord.setPositionNotificationPeriod(framePeriod);
     			
@@ -265,6 +312,10 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
 			}
 			mAudioRecord.release();
 			mAudioRecord = null;
+			
+			if (mLibFQRtmp != null) {
+				mLibFQRtmp.closeAudioEncoder();
+			}
 		}
 		
 		if (mAudioHandlerThread != null && mAudioHandlerThread.isAlive()) {
@@ -316,7 +367,10 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
 	    
 	    closeCamera();
 	    
-	    mLibFQRtmp.stop();
+	    if (mLibFQRtmp != null) {
+	    	mLibFQRtmp.stop();
+	    	mLibFQRtmp = null;
+	    }
 		mActivity.setContentView(R.layout.info);
 	}
 	
@@ -580,8 +634,10 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
               mFocusMode.equals(Parameters.FOCUS_MODE_EDOF))) {
             Log.d(TAG, "autoFocus");
             
-            mFocusState = FOCUSING;
-            mCameraDevice.autoFocus(mAutoFocusCallback);
+            if (!mPausing && mCameraDevice != null) {
+            	mFocusState = FOCUSING;
+            	mCameraDevice.autoFocus(mAutoFocusCallback);
+            }
         }
     }
     
@@ -676,12 +732,17 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback, SensorEven
 	@Override
 	public void onPeriodicNotification(AudioRecord audioRecord) {
 		int readSize = audioRecord.read(mAudioBuffer, 0, mAudioBuffer.length);
-		Log.d(TAG, "Audio read, size=" + readSize);
+		if (mServerConnected && mLibFQRtmp != null) {
+			mLibFQRtmp.sendRawAudio(mAudioBuffer, readSize);
+		}
 	}
 
 	@Override
 	public void onPreviewFrame(byte[] data, Camera camera) {
-		Log.d(TAG, "Preview callback");
+		if (mServerConnected && mLibFQRtmp != null) {
+			mLibFQRtmp.sendRawVideo(data, data.length);
+		}
+		
 		camera.addCallbackBuffer(data);
 	}
 }
