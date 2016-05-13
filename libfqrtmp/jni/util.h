@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <libgen.h>
 #include <errno.h>
+#include <fdk-aac/aacenc_lib.h>
 #include <jni.h>
 #include <librtmp/log.h>
 #include <android/log.h>
@@ -37,11 +38,12 @@ struct LibFQRtmp {
     } String;
     jmethodID onNativeCrashID;
     jmethodID dispatchEventFromNativeID;
+    HANDLE_AACENCODER aac_enc;
 };
 
 extern struct LibFQRtmp LibFQRtmp;
 
-jstring new_string(const char *str);
+jstring jnu_new_string(const char *str);
 
 static inline int libfqrtmp_log_print(const char *file, const int line,
                                       const android_LogPriority prio, const char *tag,
@@ -65,6 +67,13 @@ static inline void throw_IllegalArgumentException(JNIEnv *env, const char *error
 {
     (*env)->ThrowNew(env, LibFQRtmp.IllegalArgumentException.clazz, error);
 }
+
+jvalue jnu_get_field_by_name(jboolean *has_exception, jobject obj,
+                             const char *name, const char *signature);
+jvalue jnu_call_method_by_name(jboolean *has_exception, jobject obj,
+                               const char *name, const char *signature, ...);
+jvalue jnu_call_method_by_name_v(jboolean *has_exception, jobject obj,
+                                 const char *name, const char *signature, va_list args);
 
 #define ERRNOMSG strerror_(errno)
 static inline const char *strerror_(int err)

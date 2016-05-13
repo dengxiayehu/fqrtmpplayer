@@ -14,9 +14,13 @@ public class LibFQRtmp {
     
     public class VideoConfig {
     	private int mCamcorderProfileId = CamcorderProfile.QUALITY_HIGH;
+    	private int mBitrate = -1;
     	
     	public int getCamcorderProfileId() {
     		return mCamcorderProfileId;
+    	}
+    	public int getBitrate() {
+    		return mBitrate;
     	}
     }
     
@@ -24,7 +28,14 @@ public class LibFQRtmp {
     	private int mSamplerateInHz = 11025;
     	private int mChannel = AudioFormat.CHANNEL_IN_MONO;
     	private int mEncoding = AudioFormat.ENCODING_PCM_16BIT;
+    	private int mBitrate = -1; // Auto
+    	private int mAudioObjectType = 2; // AOT_AAC_LC
+    	private int mFrameLength = -1;
+    	private int mEncoderDelay = -1;
     	
+    	public int getAudioObjectType() {
+    		return mAudioObjectType;
+    	}
     	public int getSamplerate() {
     		return mSamplerateInHz;
     	}
@@ -57,6 +68,17 @@ public class LibFQRtmp {
 				return -1;
     		}
     	}
+    	public int getBitrate() {
+    		return mBitrate;
+    	}
+    	
+    	public int getFrameLength() {
+    		return mFrameLength;
+    	}
+    	
+    	public int getEncoderDelay() {
+    		return mEncoderDelay;
+    	} 
     }
     
     public VideoConfig getVideoConfig() {

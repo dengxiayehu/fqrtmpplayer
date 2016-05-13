@@ -3,7 +3,208 @@
 #define THREAD_NAME "util"
 extern JNIEnv *jni_get_env(const char *name);
 
-jstring new_string(const char *str)
+jvalue jnu_get_field_by_name(jboolean *has_exception, jobject obj,
+                             const char *name, const char *signature)
+{
+    JNIEnv *env = jni_get_env(THREAD_NAME);
+    jclass cls;
+    jfieldID fid;
+    jvalue result;
+
+    result.i = 0;
+
+    if ((*env)->EnsureLocalCapacity(env, 3) < 0)
+        goto done2;
+
+    cls = (*env)->GetObjectClass(env, obj);
+    fid = (*env)->GetFieldID(env, cls, name, signature);
+    if (fid == NULL)
+        goto done1;
+
+    switch (*signature) {
+    case '[':
+    case 'L':
+        result.l = (*env)->GetObjectField(env, obj, fid);
+        break;
+    case 'Z':
+        result.z = (*env)->GetBooleanField(env, obj, fid);
+        break;
+    case 'B':
+        result.b = (*env)->GetByteField(env, obj, fid);
+        break;
+    case 'C':
+        result.c = (*env)->GetCharField(env, obj, fid);
+        break;
+    case 'S':
+        result.s = (*env)->GetShortField(env, obj, fid);
+        break;
+    case 'I':
+        result.i = (*env)->GetIntField(env, obj, fid);
+        break;
+    case 'J':
+        result.j = (*env)->GetLongField(env, obj, fid);
+        break;
+    case 'F':
+        result.f = (*env)->GetFloatField(env, obj, fid);
+        break;
+    case 'D':
+        result.d = (*env)->GetDoubleField(env, obj, fid);
+        break;
+
+    default:
+        (*env)->FatalError(env, "jnu_get_field_by_name: illegal signature");
+    }
+
+done1:
+    (*env)->DeleteLocalRef(env, cls);
+done2:
+    if (has_exception) {
+        *has_exception = (*env)->ExceptionCheck(env);
+    }
+    return result;
+}
+
+jvalue jnu_call_method_by_name_v(jboolean *has_exception, jobject obj,
+                                 const char *name, const char *signature, va_list args)
+{
+    JNIEnv *env = jni_get_env(THREAD_NAME);
+    jclass clazz;
+    jmethodID mid;
+    jvalue result;
+    const char *p = signature;
+
+    while (*p && *p != ')')
+        p++;
+    p++;
+
+    result.i = 0;
+
+    if ((*env)->EnsureLocalCapacity(env, 3) < 0)
+        goto done2;
+
+    clazz = (*env)->GetObjectClass(env, obj);
+    mid = (*env)->GetMethodID(env, clazz, name, signature);
+    if (mid == NULL)
+        goto done1;
+
+    switch (*p) {
+        case 'V':
+            (*env)->CallVoidMethodV(env, obj, mid, args);
+            break;
+        case '[':
+        case 'L':
+            result.l = (*env)->CallObjectMethodV(env, obj, mid, args);
+            break;
+        case 'Z':
+            result.z = (*env)->CallBooleanMethodV(env, obj, mid, args);
+            break;
+        case 'B':
+            result.b = (*env)->CallByteMethodV(env, obj, mid, args);
+            break;
+        case 'C':
+            result.c = (*env)->CallCharMethodV(env, obj, mid, args);
+            break;
+        case 'S':
+            result.s = (*env)->CallShortMethodV(env, obj, mid, args);
+            break;
+        case 'I':
+            result.i = (*env)->CallIntMethodV(env, obj, mid, args);
+            break;
+        case 'J':
+            result.j = (*env)->CallLongMethodV(env, obj, mid, args);
+            break;
+        case 'F':
+            result.f = (*env)->CallFloatMethodV(env, obj, mid, args);
+            break;
+        case 'D':
+            result.d = (*env)->CallDoubleMethodV(env, obj, mid, args);
+            break;
+        default:
+            (*env)->FatalError(env, "jnu_call_method_by_name_v: illegal signature");
+    }
+done1:
+    (*env)->DeleteLocalRef(env, clazz);
+done2:
+    if (has_exception) {
+        *has_exception = (*env)->ExceptionCheck(env);
+    }
+    return result;
+}
+
+jvalue jnu_call_method_by_name(jboolean *has_exception, jobject obj,
+                               const char *name, const char *signature, ...)
+{
+    jvalue result;
+    va_list args;
+
+    va_start(args, signature);
+    result = jnu_call_method_by_name_v(has_exception, obj, name, signature, args);
+    va_end(args);
+
+    return result;
+}
+
+void jnu_set_field_by_name(jboolean *hasException, jobject obj,
+                           const char *name, const char *signature, ...)
+{
+    JNIEnv *env = jni_get_env(THREAD_NAME);
+    jclass cls;
+    jfieldID fid;
+    va_list args;
+
+    if ((*env)->EnsureLocalCapacity(env, 3) < 0)
+        goto done2;
+
+    cls = (*env)->GetObjectClass(env, obj);
+    fid = (*env)->GetFieldID(env, cls, name, signature);
+    if (fid == 0)
+        goto done1;
+
+    va_start(args, signature);
+    switch (*signature) {
+    case '[':
+    case 'L':
+        (*env)->SetObjectField(env, obj, fid, va_arg(args, jobject));
+    break;      
+    case 'Z':
+        (*env)->SetBooleanField(env, obj, fid, (jboolean)va_arg(args, int));
+    break;
+    case 'B':
+        (*env)->SetByteField(env, obj, fid, (jbyte)va_arg(args, int));
+    break;
+    case 'C':
+        (*env)->SetCharField(env, obj, fid, (jchar)va_arg(args, int));
+    break;
+    case 'S':
+        (*env)->SetShortField(env, obj, fid, (jshort)va_arg(args, int));
+    break;
+    case 'I':
+        (*env)->SetIntField(env, obj, fid, va_arg(args, jint));
+    break;
+    case 'J':
+        (*env)->SetLongField(env, obj, fid, va_arg(args, jlong));
+    break;
+    case 'F':
+        (*env)->SetFloatField(env, obj, fid, (jfloat)va_arg(args, jdouble));
+    break;
+    case 'D':
+        (*env)->SetDoubleField(env, obj, fid, va_arg(args, jdouble));
+    break;
+
+    default:
+        (*env)->FatalError(env, "jnu_set_field_by_name: illegal signature");
+    }
+    va_end(args);
+
+ done1:
+    (*env)->DeleteLocalRef(env, cls);
+ done2:
+    if (hasException) {
+        *hasException = (*env)->ExceptionCheck(env);
+    }
+}
+
+jstring jnu_new_string(const char *str)
 {
     JNIEnv *env = jni_get_env(THREAD_NAME);
     jmethodID cid;
@@ -27,6 +228,8 @@ jstring new_string(const char *str)
     (*env)->DeleteLocalRef(env, arr);
     return result;
 }
+
+//////////////////////////////////////////////////////////////////////////
 
 void rtmp_log(int level, const char *fmt, va_list args)
 {

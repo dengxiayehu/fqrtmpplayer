@@ -30,6 +30,7 @@ LOCAL_MODULE := libfqrtmpjni
 LOCAL_SRC_FILES := libfqrtmpjni.c \
     native_crash_handler.c \
     libfqrtmp_events.c \
+    libfqrtmp_aac.c \
     rtmp.c \
     util.c
 

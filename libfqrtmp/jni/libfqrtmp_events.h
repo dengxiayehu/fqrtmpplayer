@@ -18,5 +18,4 @@ void libfqrtmp_event_send(libfqrtmp_event type, jlong arg0, jstring arg2);
 #ifdef __cplusplus
 }
 #endif
-
 #endif /* end of _LIBFQRTMP_EVENTS_H_ */

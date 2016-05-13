@@ -3,6 +3,7 @@
 
 #include "native_crash_handler.h"
 #include "libfqrtmp_events.h"
+#include "libfqrtmp_aac.h"
 #include "rtmp.h"
 #include "util.h"
 #include "config.h"
@@ -21,10 +22,7 @@ static pthread_key_t jni_env_key;
 static jstring version(JNIEnv *, jobject);
 static void nativeNew(JNIEnv *, jobject, jstring cmdline);
 static void nativeRelease(JNIEnv *, jobject);
-static jint sendRawAudio(JNIEnv *, jobject, jbyteArray, jint);
 static jint sendRawVideo(JNIEnv *, jobject, jbyteArray, jint);
-static jint openAudioEncoder(JNIEnv *env, jobject, jobject);
-static jint closeAudioEncoder(JNIEnv *env, jobject);
 
 static JNINativeMethod method[] = {
     {"version", "()Ljava/lang/String;", (void *) version},
@@ -149,7 +147,7 @@ JNI_OnUnload(JavaVM *jvm, void *reserved)
 
 static jstring version(JNIEnv *env, jobject thiz)
 {
-    return new_string(VERSION_MESSAGE);
+    return jnu_new_string(VERSION_MESSAGE);
 }
 
 static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
@@ -168,19 +166,19 @@ static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
         goto out;
     }
 
-    libfqrtmp_event_send(OPENING, 0, new_string(""));
+    libfqrtmp_event_send(OPENING, 0, jnu_new_string(""));
 
     r = rtmp_init(str);
     if (r) {
         if (rtmp_connect(r) < 0) {
             libfqrtmp_event_send(ENCOUNTERED_ERROR,
-                                 -1001, new_string("rtmp_connect failed"));
+                                 -1001, jnu_new_string("rtmp_connect failed"));
         } else {
-            libfqrtmp_event_send(CONNECTED, 0, new_string(""));
+            libfqrtmp_event_send(CONNECTED, 0, jnu_new_string(""));
         }
     } else {
         libfqrtmp_event_send(ENCOUNTERED_ERROR,
-                             -1001, new_string("rtmp_init failed"));
+                             -1001, jnu_new_string("rtmp_init failed"));
     }
 
 out:
@@ -199,22 +197,7 @@ static void nativeRelease(JNIEnv *env, jobject thiz)
     }
 }
 
-static jint sendRawAudio(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
-{
-    return 0;
-}
-
 static jint sendRawVideo(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
-{
-    return 0;
-}
-
-static jint openAudioEncoder(JNIEnv *env, jobject thiz, jobject audio_config)
-{
-    return 0;
-}
-
-static jint closeAudioEncoder(JNIEnv *env, jobject thiz)
 {
     return 0;
 }
