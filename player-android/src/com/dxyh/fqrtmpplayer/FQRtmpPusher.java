@@ -2,6 +2,15 @@ package com.dxyh.fqrtmpplayer;
 
 import java.util.List;
 
+import com.dxyh.fqrtmpplayer.camera.CameraHardwareException;
+import com.dxyh.fqrtmpplayer.camera.CameraHolder;
+import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
+import com.dxyh.fqrtmpplayer.gui.RotateImageView;
+import com.dxyh.fqrtmpplayer.gui.UiTools;
+import com.dxyh.fqrtmpplayer.util.Util;
+import com.dxyh.libfqrtmp.Event;
+import com.dxyh.libfqrtmp.LibFQRtmp;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -25,15 +34,6 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 
-import com.dxyh.fqrtmpplayer.camera.CameraHardwareException;
-import com.dxyh.fqrtmpplayer.camera.CameraHolder;
-import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
-import com.dxyh.fqrtmpplayer.gui.RotateImageView;
-import com.dxyh.fqrtmpplayer.gui.UiTools;
-import com.dxyh.fqrtmpplayer.util.Util;
-import com.dxyh.libfqrtmp.Event;
-import com.dxyh.libfqrtmp.LibFQRtmp;
-
 @SuppressWarnings("deprecation")
 public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 		SensorEventListener, OnRecordPositionUpdateListener,
@@ -51,7 +51,7 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
     
     private static final float ACCEL_THRESHOLD = .3f;
     
-    private static final int AUDIO_FRAME_PERIOD = 120; // In Milliseconds
+    private static final int AUDIO_FRAME_PERIOD = 30; // In Milliseconds
     
     private Activity mActivity;
     
@@ -109,6 +109,8 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
     private byte[] mAudioBuffer;
     
     private HandlerThread mAudioHandlerThread = null;
+    
+    private AudioPlayer mAudioPlayer = null;
 
     private final Handler mHandler = new MainHandler();
     
@@ -275,7 +277,7 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
     				bufferSize = minBufferSize;
     				framePeriod =
     						bufferSize / (2 * mAudioConfig.getChannelCount() * mAudioConfig.getBitsPerSample() / 8);
-    				Log.w(TAG, "increasing bufferSize to " + minBufferSize);
+    				Log.w(TAG, "AudioRecord increasing bufferSize to " + minBufferSize);
     			}
     			
     			mAudioRecord = new AudioRecord(AudioSource.MIC,
@@ -291,6 +293,9 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
     				mHandler.sendEmptyMessage(ERROR_OCCURRED);
     				return -1;
     			}
+    			
+    			mAudioPlayer = new AudioPlayer();
+    			mAudioPlayer.prepare(mAudioConfig);
     			
     			mAudioRecord.setRecordPositionUpdateListener(this, audioHandler);
     			mAudioRecord.setPositionNotificationPeriod(framePeriod);
@@ -312,6 +317,11 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 			}
 			mAudioRecord.release();
 			mAudioRecord = null;
+			
+			if (mAudioPlayer != null) {
+			    mAudioPlayer.close();
+			    mAudioPlayer = null;
+			}
 			
 			if (mLibFQRtmp != null) {
 				mLibFQRtmp.closeAudioEncoder();
@@ -733,10 +743,13 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 	public void onPeriodicNotification(AudioRecord audioRecord) {
 		int readSize = audioRecord.read(mAudioBuffer, 0, mAudioBuffer.length);
 		if (mServerConnected && mLibFQRtmp != null) {
-			mLibFQRtmp.sendRawAudio(mAudioBuffer, readSize);
+		    mLibFQRtmp.sendRawAudio(mAudioBuffer, readSize);
+			if (mAudioPlayer != null && mAudioPlayer.isPlaying()) {
+			    mAudioPlayer.play(mAudioBuffer, readSize);
+			}
 		}
 	}
-
+	
 	@Override
 	public void onPreviewFrame(byte[] data, Camera camera) {
 		if (mServerConnected && mLibFQRtmp != null) {

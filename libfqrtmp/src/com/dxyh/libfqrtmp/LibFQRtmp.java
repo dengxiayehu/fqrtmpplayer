@@ -26,12 +26,13 @@ public class LibFQRtmp {
     
     public class AudioConfig {
     	private int mSamplerateInHz = 11025;
-    	private int mChannel = AudioFormat.CHANNEL_IN_MONO;
+    	private int mChannel = AudioFormat.CHANNEL_IN_STEREO;
     	private int mEncoding = AudioFormat.ENCODING_PCM_16BIT;
     	private int mBitrate = -1; // Auto
     	private int mAudioObjectType = 2; // AOT_AAC_LC
     	private int mFrameLength = -1;
     	private int mEncoderDelay = -1;
+        private float mVolume = 0.8f;
     	
     	public int getAudioObjectType() {
     		return mAudioObjectType;
@@ -78,7 +79,11 @@ public class LibFQRtmp {
     	
     	public int getEncoderDelay() {
     		return mEncoderDelay;
-    	} 
+    	}
+
+        public float getVolume() {
+            return mVolume;
+        }
     }
     
     public VideoConfig getVideoConfig() {

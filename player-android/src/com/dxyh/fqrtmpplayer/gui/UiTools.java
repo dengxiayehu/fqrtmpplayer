@@ -27,7 +27,7 @@ public class UiTools {
         edit.setFocusable(true);
         edit.setHint(R.string.edit_hint);
         edit.setSingleLine(true);
-        edit.setText("rtmp://192.168.6.127:1935/live/va");
+        edit.setText("rtmp://192.168.4.115:1935/live/va");
         edit.setSelection(edit.getText().toString().length());
         
         AlertDialog.Builder builder =
