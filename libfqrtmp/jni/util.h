@@ -38,7 +38,15 @@ struct LibFQRtmp {
     } String;
     jmethodID onNativeCrashID;
     jmethodID dispatchEventFromNativeID;
+
     HANDLE_AACENCODER aac_enc;
+    AACENC_InfoStruct info;
+    struct {
+        int samplerate;
+        int channels;
+        int bits_per_sample;
+    } AudioConfig;
+    int16_t *convert_buf;
 };
 
 extern struct LibFQRtmp LibFQRtmp;
