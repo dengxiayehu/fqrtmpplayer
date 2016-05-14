@@ -27,12 +27,12 @@ PRIVATE_INCDIR := $(CONTRIB_INSTALL)/include
 
 LOCAL_MODULE := libfqrtmpjni
 
-LOCAL_SRC_FILES := libfqrtmpjni.c \
-    native_crash_handler.c \
-    libfqrtmp_events.c \
-    libfqrtmp_aac.c \
-    rtmp.c \
-    util.c
+LOCAL_SRC_FILES := libfqrtmpjni.cpp \
+    native_crash_handler.cpp \
+    libfqrtmp_events.cpp \
+    libfqrtmp_aac.cpp \
+    rtmp.cpp \
+    util.cpp
 
 LOCAL_C_INCLUDES := $(PRIVATE_INCDIR)
 LOCAL_LDLIBS := -llog

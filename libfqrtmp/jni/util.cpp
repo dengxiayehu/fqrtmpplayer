@@ -13,53 +13,53 @@ jvalue jnu_get_field_by_name(jboolean *has_exception, jobject obj,
 
     result.i = 0;
 
-    if ((*env)->EnsureLocalCapacity(env, 3) < 0)
+    if (env->EnsureLocalCapacity(3) < 0)
         goto done2;
 
-    cls = (*env)->GetObjectClass(env, obj);
-    fid = (*env)->GetFieldID(env, cls, name, signature);
+    cls = env->GetObjectClass(obj);
+    fid = env->GetFieldID(cls, name, signature);
     if (fid == NULL)
         goto done1;
 
     switch (*signature) {
     case '[':
     case 'L':
-        result.l = (*env)->GetObjectField(env, obj, fid);
+        result.l = env->GetObjectField(obj, fid);
         break;
     case 'Z':
-        result.z = (*env)->GetBooleanField(env, obj, fid);
+        result.z = env->GetBooleanField(obj, fid);
         break;
     case 'B':
-        result.b = (*env)->GetByteField(env, obj, fid);
+        result.b = env->GetByteField(obj, fid);
         break;
     case 'C':
-        result.c = (*env)->GetCharField(env, obj, fid);
+        result.c = env->GetCharField(obj, fid);
         break;
     case 'S':
-        result.s = (*env)->GetShortField(env, obj, fid);
+        result.s = env->GetShortField(obj, fid);
         break;
     case 'I':
-        result.i = (*env)->GetIntField(env, obj, fid);
+        result.i = env->GetIntField(obj, fid);
         break;
     case 'J':
-        result.j = (*env)->GetLongField(env, obj, fid);
+        result.j = env->GetLongField(obj, fid);
         break;
     case 'F':
-        result.f = (*env)->GetFloatField(env, obj, fid);
+        result.f = env->GetFloatField(obj, fid);
         break;
     case 'D':
-        result.d = (*env)->GetDoubleField(env, obj, fid);
+        result.d = env->GetDoubleField(obj, fid);
         break;
 
     default:
-        (*env)->FatalError(env, "jnu_get_field_by_name: illegal signature");
+        env->FatalError("jnu_get_field_by_name: illegal signature");
     }
 
 done1:
-    (*env)->DeleteLocalRef(env, cls);
+    env->DeleteLocalRef(cls);
 done2:
     if (has_exception) {
-        *has_exception = (*env)->ExceptionCheck(env);
+        *has_exception = env->ExceptionCheck();
     }
     return result;
 }
@@ -79,54 +79,54 @@ jvalue jnu_call_method_by_name_v(jboolean *has_exception, jobject obj,
 
     result.i = 0;
 
-    if ((*env)->EnsureLocalCapacity(env, 3) < 0)
+    if (env->EnsureLocalCapacity(3) < 0)
         goto done2;
 
-    clazz = (*env)->GetObjectClass(env, obj);
-    mid = (*env)->GetMethodID(env, clazz, name, signature);
+    clazz = env->GetObjectClass(obj);
+    mid = env->GetMethodID(clazz, name, signature);
     if (mid == NULL)
         goto done1;
 
     switch (*p) {
         case 'V':
-            (*env)->CallVoidMethodV(env, obj, mid, args);
+            env->CallVoidMethodV(obj, mid, args);
             break;
         case '[':
         case 'L':
-            result.l = (*env)->CallObjectMethodV(env, obj, mid, args);
+            result.l = env->CallObjectMethodV(obj, mid, args);
             break;
         case 'Z':
-            result.z = (*env)->CallBooleanMethodV(env, obj, mid, args);
+            result.z = env->CallBooleanMethodV(obj, mid, args);
             break;
         case 'B':
-            result.b = (*env)->CallByteMethodV(env, obj, mid, args);
+            result.b = env->CallByteMethodV(obj, mid, args);
             break;
         case 'C':
-            result.c = (*env)->CallCharMethodV(env, obj, mid, args);
+            result.c = env->CallCharMethodV(obj, mid, args);
             break;
         case 'S':
-            result.s = (*env)->CallShortMethodV(env, obj, mid, args);
+            result.s = env->CallShortMethodV(obj, mid, args);
             break;
         case 'I':
-            result.i = (*env)->CallIntMethodV(env, obj, mid, args);
+            result.i = env->CallIntMethodV(obj, mid, args);
             break;
         case 'J':
-            result.j = (*env)->CallLongMethodV(env, obj, mid, args);
+            result.j = env->CallLongMethodV(obj, mid, args);
             break;
         case 'F':
-            result.f = (*env)->CallFloatMethodV(env, obj, mid, args);
+            result.f = env->CallFloatMethodV(obj, mid, args);
             break;
         case 'D':
-            result.d = (*env)->CallDoubleMethodV(env, obj, mid, args);
+            result.d = env->CallDoubleMethodV(obj, mid, args);
             break;
         default:
-            (*env)->FatalError(env, "jnu_call_method_by_name_v: illegal signature");
+            env->FatalError("jnu_call_method_by_name_v: illegal signature");
     }
 done1:
-    (*env)->DeleteLocalRef(env, clazz);
+    env->DeleteLocalRef(clazz);
 done2:
     if (has_exception) {
-        *has_exception = (*env)->ExceptionCheck(env);
+        *has_exception = env->ExceptionCheck();
     }
     return result;
 }
@@ -152,11 +152,11 @@ void jnu_set_field_by_name(jboolean *hasException, jobject obj,
     jfieldID fid;
     va_list args;
 
-    if ((*env)->EnsureLocalCapacity(env, 3) < 0)
+    if (env->EnsureLocalCapacity(3) < 0)
         goto done2;
 
-    cls = (*env)->GetObjectClass(env, obj);
-    fid = (*env)->GetFieldID(env, cls, name, signature);
+    cls = env->GetObjectClass(obj);
+    fid = env->GetFieldID(cls, name, signature);
     if (fid == 0)
         goto done1;
 
@@ -164,43 +164,43 @@ void jnu_set_field_by_name(jboolean *hasException, jobject obj,
     switch (*signature) {
     case '[':
     case 'L':
-        (*env)->SetObjectField(env, obj, fid, va_arg(args, jobject));
+        env->SetObjectField(obj, fid, va_arg(args, jobject));
     break;      
     case 'Z':
-        (*env)->SetBooleanField(env, obj, fid, (jboolean)va_arg(args, int));
+        env->SetBooleanField(obj, fid, (jboolean)va_arg(args, int));
     break;
     case 'B':
-        (*env)->SetByteField(env, obj, fid, (jbyte)va_arg(args, int));
+        env->SetByteField(obj, fid, (jbyte)va_arg(args, int));
     break;
     case 'C':
-        (*env)->SetCharField(env, obj, fid, (jchar)va_arg(args, int));
+        env->SetCharField(obj, fid, (jchar)va_arg(args, int));
     break;
     case 'S':
-        (*env)->SetShortField(env, obj, fid, (jshort)va_arg(args, int));
+        env->SetShortField(obj, fid, (jshort)va_arg(args, int));
     break;
     case 'I':
-        (*env)->SetIntField(env, obj, fid, va_arg(args, jint));
+        env->SetIntField(obj, fid, va_arg(args, jint));
     break;
     case 'J':
-        (*env)->SetLongField(env, obj, fid, va_arg(args, jlong));
+        env->SetLongField(obj, fid, va_arg(args, jlong));
     break;
     case 'F':
-        (*env)->SetFloatField(env, obj, fid, (jfloat)va_arg(args, jdouble));
+        env->SetFloatField(obj, fid, (jfloat)va_arg(args, jdouble));
     break;
     case 'D':
-        (*env)->SetDoubleField(env, obj, fid, va_arg(args, jdouble));
+        env->SetDoubleField(obj, fid, va_arg(args, jdouble));
     break;
 
     default:
-        (*env)->FatalError(env, "jnu_set_field_by_name: illegal signature");
+        env->FatalError("jnu_set_field_by_name: illegal signature");
     }
     va_end(args);
 
  done1:
-    (*env)->DeleteLocalRef(env, cls);
+    env->DeleteLocalRef(cls);
  done2:
     if (hasException) {
-        *hasException = (*env)->ExceptionCheck(env);
+        *hasException = env->ExceptionCheck();
     }
 }
 
@@ -212,20 +212,19 @@ jstring jnu_new_string(const char *str)
     jsize len;
     jstring result;
 
-    cid = (*env)->GetMethodID(env, LibFQRtmp.String.clazz,
-                              "<init>", "([B)V");
+    cid = env->GetMethodID(LibFQRtmp.String.clazz, "<init>", "([B)V");
     if (!cid)
         return NULL;
 
     len = strlen(str);
-    arr = (*env)->NewByteArray(env, len);
+    arr = env->NewByteArray(len);
     if (!arr)
         return NULL;
-    (*env)->SetByteArrayRegion(env, arr, 0, len, (const jbyte *) str);
+    env->SetByteArrayRegion(arr, 0, len, (const jbyte *) str);
 
-    result = (*env)->NewObject(env, LibFQRtmp.String.clazz, cid, arr);
+    result = (jstring) env->NewObject(LibFQRtmp.String.clazz, cid, arr);
 
-    (*env)->DeleteLocalRef(env, arr);
+    env->DeleteLocalRef(arr);
     return result;
 }
 

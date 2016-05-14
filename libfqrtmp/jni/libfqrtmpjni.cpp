@@ -36,16 +36,16 @@ static JNINativeMethod method[] = {
 
 static void jni_detach_thread(void *data)
 {
-    (*cached_jvm)->DetachCurrentThread(cached_jvm);
+    cached_jvm->DetachCurrentThread();
 }
 
 JNIEnv *jni_get_env(const char *name)
 {
     JNIEnv *env;
 
-    env = pthread_getspecific(jni_env_key);
+    env = (JNIEnv *) pthread_getspecific(jni_env_key);
     if (!env) {
-        if ((*cached_jvm)->GetEnv(cached_jvm, (void **) &env, JNI_VERSION) != JNI_OK) {
+        if (cached_jvm->GetEnv((void **) &env, JNI_VERSION) != JNI_OK) {
             JavaVMAttachArgs args;
             jint result;
 
@@ -53,11 +53,11 @@ JNIEnv *jni_get_env(const char *name)
             args.name = name;
             args.group = NULL;
 
-            if ((*cached_jvm)->AttachCurrentThread(cached_jvm, &env, &args) != JNI_OK)
+            if (cached_jvm->AttachCurrentThread(&env, &args) != JNI_OK)
                 return NULL;
 
             if (pthread_setspecific(jni_env_key, env) != 0) {
-                (*cached_jvm)->DetachCurrentThread(cached_jvm);
+                cached_jvm->DetachCurrentThread();
                 return NULL;
             }
         }
@@ -72,20 +72,20 @@ JNI_OnLoad(JavaVM *jvm, void *reserved)
     JNIEnv *env = NULL;
     cached_jvm = jvm;
 
-    if ((*jvm)->GetEnv(jvm, (void **) &env, JNI_VERSION) != JNI_OK)
+    if (jvm->GetEnv((void **) &env, JNI_VERSION) != JNI_OK)
         return JNI_ERR;
 
     if (pthread_key_create(&jni_env_key, jni_detach_thread) != 0)
         return JNI_ERR;
 
 #define GET_CLASS(clazz, str, globlal) do { \
-    (clazz) = (*env)->FindClass(env, (str)); \
+    (clazz) = env->FindClass((str)); \
     if (!(clazz)) { \
         E("FindClass(%s) failed", (str)); \
         return -1; \
     } \
     if (globlal) { \
-        (clazz) = (jclass) (*env)->NewGlobalRef(env, (clazz)); \
+        (clazz) = (jclass) env->NewGlobalRef((clazz)); \
         if (!(clazz)) { \
             E("NewGlobalRef(%s) failed", (str)); \
             return -1; \
@@ -94,7 +94,7 @@ JNI_OnLoad(JavaVM *jvm, void *reserved)
 } while (0)
 
 #define GET_ID(get, id, clazz, str, args) do { \
-    (id) = (*env)->get(env, (clazz), (str), (args)); \
+    (id) = env->get((clazz), (str), (args)); \
     if (!(id)) { \
         E(#get"(%s) failed", (str)); \
         return -1; \
@@ -120,7 +120,7 @@ JNI_OnLoad(JavaVM *jvm, void *reserved)
            LibFQRtmp.clazz,
            "dispatchEventFromNative", "(IJLjava/lang/String;)V");
 
-    (*env)->RegisterNatives(env, LibFQRtmp.clazz, method, NELEM(method));
+    env->RegisterNatives(LibFQRtmp.clazz, method, NELEM(method));
 
     init_native_crash_handler();
 
@@ -135,12 +135,12 @@ JNI_OnUnload(JavaVM *jvm, void *reserved)
 
     destroy_native_crash_handler();
 
-    if ((*jvm)->GetEnv(jvm, (void **) &env, JNI_VERSION))
+    if (jvm->GetEnv((void **) &env, JNI_VERSION))
         return;
 
-    (*env)->DeleteGlobalRef(env, LibFQRtmp.clazz);
-    (*env)->DeleteGlobalRef(env, LibFQRtmp.String.clazz);
-    (*env)->DeleteGlobalRef(env, LibFQRtmp.IllegalArgumentException.clazz);
+    env->DeleteGlobalRef(LibFQRtmp.clazz);
+    env->DeleteGlobalRef(LibFQRtmp.String.clazz);
+    env->DeleteGlobalRef(LibFQRtmp.IllegalArgumentException.clazz);
 
     pthread_key_delete(jni_env_key);
 }
@@ -154,13 +154,13 @@ static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
 {
     const char *str;
 
-    str = (*env)->GetStringUTFChars(env, cmdline, NULL);
+    str = env->GetStringUTFChars(cmdline, NULL);
     if (!str) {
         throw_IllegalArgumentException(env, "cmdline invalid");
         return;
     }
 
-    LibFQRtmp.weak_thiz = (*env)->NewWeakGlobalRef(env, thiz);
+    LibFQRtmp.weak_thiz = env->NewWeakGlobalRef(thiz);
     if (!LibFQRtmp.weak_thiz) {
         E("Create weak-reference for libfqrtmp instance failed");
         goto out;
@@ -182,7 +182,7 @@ static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
     }
 
 out:
-    (*env)->ReleaseStringUTFChars(env, cmdline, str);
+    env->ReleaseStringUTFChars(cmdline, str);
 }
 
 static void nativeRelease(JNIEnv *env, jobject thiz)
@@ -192,8 +192,8 @@ static void nativeRelease(JNIEnv *env, jobject thiz)
         rtmp_destroy(&r);
     }
 
-    if (!(*env)->IsSameObject(env, LibFQRtmp.weak_thiz, NULL)) {
-        (*env)->DeleteWeakGlobalRef(env, LibFQRtmp.weak_thiz);
+    if (!env->IsSameObject(LibFQRtmp.weak_thiz, NULL)) {
+        env->DeleteWeakGlobalRef(LibFQRtmp.weak_thiz);
     }
 }
 

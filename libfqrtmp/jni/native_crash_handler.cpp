@@ -25,8 +25,7 @@ void sigaction_callback(int signal, siginfo_t *info, void *reserved)
     if (!(env = jni_get_env(THREAD_NAME)))
         return;
 
-    (*env)->CallStaticVoidMethod(env, LibFQRtmp.clazz,
-                                 LibFQRtmp.onNativeCrashID);
+    env->CallStaticVoidMethod(LibFQRtmp.clazz, LibFQRtmp.onNativeCrashID);
 
     old_actions[signal].sa_handler(signal);
 }

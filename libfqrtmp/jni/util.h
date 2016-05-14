@@ -73,11 +73,13 @@ static inline int libfqrtmp_log_print(const char *file, const int line,
 
 static inline void throw_IllegalArgumentException(JNIEnv *env, const char *error)
 {
-    (*env)->ThrowNew(env, LibFQRtmp.IllegalArgumentException.clazz, error);
+    env->ThrowNew(LibFQRtmp.IllegalArgumentException.clazz, error);
 }
 
 jvalue jnu_get_field_by_name(jboolean *has_exception, jobject obj,
                              const char *name, const char *signature);
+void jnu_set_field_by_name(jboolean *hasException, jobject obj,
+                           const char *name, const char *signature, ...);
 jvalue jnu_call_method_by_name(jboolean *has_exception, jobject obj,
                                const char *name, const char *signature, ...);
 jvalue jnu_call_method_by_name_v(jboolean *has_exception, jobject obj,

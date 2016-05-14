@@ -211,11 +211,11 @@ jint sendRawAudio(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
     int i, ret = 0;
     void *in_ptr, *out_ptr;
     jbyte outbuf[20480];
-    jbyte *buffer;
+    uint8_t *buffer;
     jboolean is_copy;
     AACENC_ERROR err;
 
-    buffer = (*env)->GetByteArrayElements(env, byte_arr, &is_copy);
+    buffer = (uint8_t *) env->GetByteArrayElements(byte_arr, &is_copy);
     if (!buffer) {
         E("Get audio buffer failed");
         return -1;
@@ -263,6 +263,6 @@ jint sendRawAudio(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
     }
 
 done:
-    (*env)->ReleaseByteArrayElements(env, byte_arr, buffer, 0);
+    env->ReleaseByteArrayElements(byte_arr, (jbyte *) buffer, 0);
     return ret;
 }
