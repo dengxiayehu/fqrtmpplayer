@@ -33,9 +33,10 @@ LOCAL_SRC_FILES := libfqrtmpjni.cpp \
     audio_encoder.cpp \
     rtmp.cpp \
     common.cpp \
-    $(wildcard xutil/*.cpp)
+    xutil/xfile.cpp \
+    xutil/xutil.cpp
 
-LOCAL_C_INCLUDES := $(PRIVATE_INCDIR) xutil
+LOCAL_C_INCLUDES := $(PRIVATE_INCDIR) $(LOCAL_PATH)/xutil
 LOCAL_CFLAGS := -Wall
 LOCAL_LDLIBS := -llog
 LOCAL_SHARED_LIBRARIES := rtmp
