@@ -14,6 +14,7 @@ import com.dxyh.libfqrtmp.LibFQRtmp;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
 import android.hardware.Sensor;
@@ -543,6 +544,9 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 	private static boolean isSupported(String value, List<String> supported) {
         return supported == null ? false : supported.indexOf(value) >= 0;
     }
+	private static boolean isSupported(Integer value, List<Integer> supported) {
+	    return supported == null ? false : supported.indexOf(value) >= 0;
+	}
 	
 	private void updateCameraParametersPreference() {
 	    PreviewFrameLayout frameLayout =
@@ -580,6 +584,11 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
         String colorEffect = Camera.Parameters.EFFECT_NONE;
         if (isSupported(colorEffect, mParameters.getSupportedColorEffects())) {
             mParameters.setColorEffect(colorEffect);
+        }
+        
+        int imageFormat = ImageFormat.NV21;
+        if (isSupported(imageFormat, mParameters.getSupportedPreviewFormats())) {
+            mParameters.setPreviewFormat(imageFormat);
         }
 
         mCameraDevice.setParameters(mParameters);

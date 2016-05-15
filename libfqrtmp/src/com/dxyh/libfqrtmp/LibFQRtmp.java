@@ -1,5 +1,6 @@
 package com.dxyh.libfqrtmp;
 
+import android.graphics.ImageFormat;
 import android.media.AudioFormat;
 import android.media.CamcorderProfile;
 import android.os.Handler;
@@ -12,9 +13,19 @@ public class LibFQRtmp {
     private VideoConfig mVideoConfig = new VideoConfig();
     private AudioConfig mAudioConfig = new AudioConfig();
     
+    @SuppressWarnings("unused")
     public class VideoConfig {
     	private int mCamcorderProfileId = CamcorderProfile.QUALITY_HIGH;
+        private boolean mDeblock = true;
+    	private String mPreset = "ultrafast";
+    	private String mTune = "zerolatency";
+    	private int mLevelIDC = -1;
+    	private int mInputCSP = ImageFormat.NV21;
     	private int mBitrate = -1;
+    	private int mFPSNum = -1;
+    	private int mFPSDen = -1;
+    	private int mSarNum = -1;
+    	private int mSarDen = -1;
     	
     	public int getCamcorderProfileId() {
     		return mCamcorderProfileId;
