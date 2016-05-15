@@ -1,6 +1,8 @@
 #include "audio_encoder.h"
 #include "common.h"
 
+using namespace xutil;
+
 static const char *aac_get_error(AACENC_ERROR err)
 {
     switch (err) {
@@ -33,16 +35,25 @@ static const char *aac_get_error(AACENC_ERROR err)
     }
 }
 
-AudioEncoder::AudioEncoder()
+AudioEncoder::AudioEncoder() :
+    m_hdlr(NULL), m_aot(0), m_samplerate(0), m_channels(0), m_bits_per_sample(0),
+    m_cond(m_mutex), m_thrd(NULL), m_quit(false)
 {
-    memset(this, 0, sizeof(*this));
+    m_iobuf = new IOBuffer;
+
+    m_file = new xfile::File;
+    m_file->open("/sdcard/fqrtmp.aac", "wb");
 }
 
 AudioEncoder::~AudioEncoder()
 {
     if (m_hdlr) {
+        m_quit = true;
+        m_cond.signal();
+        JOIN_DELETE_THREAD(m_thrd);
+        SAFE_DELETE(m_iobuf);
+        SAFE_DELETE(m_file);
         aacEncClose(&m_hdlr);
-        SAFE_FREE(m_convert_buf);
     }
 }
 
@@ -182,21 +193,114 @@ int AudioEncoder::init(jobject audio_config)
     SET_FIELD(audio_config, "mFrameLength", "I", m_info.frameLength);
     SET_FIELD(audio_config, "mEncoderDelay", "I", m_info.encoderDelay);
 
-    m_convert_buf = (int16_t *) malloc(m_channels*2*m_info.frameLength);
-    if (!m_convert_buf) {
-        E("malloc for convert_buf for audio failed: %s",
-          ERRNOMSG);
-        goto error;
-    }
+    D("AudioEncoder: m_aot=%d, m_samplerate=%d, m_channels=%d, m_bits_per_sample=%d, frameLength=%d, encoderDelay=%d",
+      m_aot, m_samplerate, m_channels, m_bits_per_sample, m_info.frameLength, m_info.encoderDelay);
 
+    m_thrd = CREATE_THREAD_ROUTINE(encode_routine, NULL, false);
     return 0;
 
 error:
     E("Init audio encoder failed");
     return -1;
 
-#undef CALL_AUDIO_CONFIG_METHOD
+#undef CALL_METHOD
 #undef SET_FIELD
+}
+
+int AudioEncoder::feed(uint8_t *buffer, int len)
+{
+    AutoLock l(m_mutex);
+    m_iobuf->read_from_buffer(buffer, len);
+    m_cond.signal();
+    return 0;
+}
+
+unsigned int AudioEncoder::encode_routine(void *arg)
+{
+    int input_size = m_channels * 2 * m_info.frameLength;
+    uint8_t *input_buf = (uint8_t *) malloc(input_size);
+    int16_t *convert_buf = (int16_t *) malloc(input_size);
+    uint8_t outbuf[20480];
+
+    if (!input_buf || !convert_buf) {
+        E("malloc failed: %s", ERRNOMSG);
+        goto done;
+    }
+
+    while (!m_quit) {
+        AACENC_BufDesc in_buf = { 0 }, out_buf = { 0 };
+        AACENC_InArgs in_args = { 0 };
+        AACENC_OutArgs out_args = { 0 };
+        int in_identifier = IN_AUDIO_DATA;
+        int in_size, in_elem_size;
+        int out_identifier = OUT_BITSTREAM_DATA;
+        int out_size, out_elem_size;
+        int i;
+        void *in_ptr, *out_ptr;
+        AACENC_ERROR err;
+
+        BEGIN
+        AutoLock l(m_mutex);
+
+        while (!m_quit &&
+               GETAVAILABLEBYTESCOUNT(*m_iobuf) < input_size) {
+           m_cond.wait();
+        }
+
+        if (m_quit)
+            break;
+
+        memcpy(input_buf, GETIBPOINTER(*m_iobuf), input_size);
+        m_iobuf->ignore(input_size);
+        END
+
+        for (i = 0; i < input_size/2; ++i) {
+            const uint8_t *in = &input_buf[2*i];
+            convert_buf[i] = in[0] | (in[1] << 8);
+        }
+
+        in_ptr = convert_buf;
+        in_size = input_size;
+        in_elem_size = 2;
+
+        in_args.numInSamples = input_size/2;
+        in_buf.numBufs = 1;
+        in_buf.bufs = &in_ptr;
+        in_buf.bufferIdentifiers = &in_identifier;
+        in_buf.bufSizes = &in_size;
+        in_buf.bufElSizes = &in_elem_size;
+
+        out_ptr = outbuf;
+        out_size = sizeof(outbuf);
+        out_elem_size = 1;
+        out_buf.numBufs = 1;
+        out_buf.bufs = &out_ptr;
+        out_buf.bufferIdentifiers = &out_identifier;
+        out_buf.bufSizes = &out_size;
+        out_buf.bufElSizes = &out_elem_size;
+
+        if ((err = aacEncEncode(m_hdlr, &in_buf, &out_buf,
+                                &in_args, &out_args)) != AACENC_OK) {
+            if (err == AACENC_ENCODE_EOF) {
+                W("libfdk-aac eof?");
+                goto done;
+            }
+
+            E("Unable to encode audio frame: %s",
+              aac_get_error(err));
+            goto done;
+        }
+
+        if (out_args.numOutBytes != 0) {
+            if (m_file != NULL)
+                m_file->write_buffer(outbuf, out_args.numOutBytes);
+        }
+    }
+
+done:
+    SAFE_FREE(input_buf);
+    SAFE_FREE(convert_buf);
+    return 0;
 }
 
 jint openAudioEncoder(JNIEnv *env, jobject thiz, jobject audio_config)
@@ -219,21 +323,9 @@ jint closeAudioEncoder(JNIEnv *env, jobject thiz)
 
 jint sendRawAudio(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
 {
-    return 0;
-#if 0
-    AACENC_BufDesc in_buf = { 0 }, out_buf = { 0 };
-    AACENC_InArgs in_args = { 0 };
-    AACENC_OutArgs out_args = { 0 };
-    int in_identifier = IN_AUDIO_DATA;
-    int in_size, in_elem_size;
-    int out_identifier = OUT_BITSTREAM_DATA;
-    int out_size, out_elem_size;
-    int i, ret = 0;
-    void *in_ptr, *out_ptr;
-    jbyte outbuf[20480];
     uint8_t *buffer;
     jboolean is_copy;
-    AACENC_ERROR err;
+    int ret;
 
     buffer = (uint8_t *) env->GetByteArrayElements(byte_arr, &is_copy);
     if (!buffer) {
@@ -241,49 +333,8 @@ jint sendRawAudio(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
         return -1;
     }
 
-    for (i = 0; i < len/2; ++i) {
-        const uint8_t *in = &buffer[2*i];
-        gfq.convert_buf[i] = in[0] | (in[1] << 8);
-    }
+    ret = gfq.audio_enc->feed(buffer, len);
 
-    in_ptr = gfq.convert_buf;
-    in_size = len;
-    in_elem_size = 2;
-
-    in_args.numInSamples = len/2;
-    in_buf.numBufs = 1;
-    in_buf.bufs = &in_ptr;
-    in_buf.bufferIdentifiers = &in_identifier;
-    in_buf.bufSizes = &in_size;
-    in_buf.bufElSizes = &in_elem_size;
-
-    out_ptr = outbuf;
-    out_size = sizeof(outbuf);
-    out_elem_size = 1;
-    out_buf.numBufs = 1;
-    out_buf.bufs = &out_ptr;
-    out_buf.bufferIdentifiers = &out_identifier;
-    out_buf.bufSizes = &out_size;
-    out_buf.bufElSizes = &out_elem_size;
-
-    if ((err = aacEncEncode(m_hdlr, &in_buf, &out_buf,
-                            &in_args, &out_args)) != AACENC_OK) {
-        if (err == AACENC_ENCODE_EOF) {
-            W("libfdk-aac eof?");
-            goto done;
-        }
-
-        E("Unable to encode audio frame: %s",
-          aac_get_error(err));
-        ret = -1;
-        goto done;
-    }
-
-    if (out_args.numOutBytes != 0) {
-    }
-
-done:
     env->ReleaseByteArrayElements(byte_arr, (jbyte *) buffer, 0);
     return ret;
-#endif
 }

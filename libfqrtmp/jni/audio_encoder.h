@@ -5,6 +5,7 @@
 #include <fdk-aac/aacenc_lib.h>
 
 #include "xutil.h"
+#include "xfile.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,15 +17,23 @@ public:
     ~AudioEncoder();
 
     int init(jobject audio_config);
+    int feed(uint8_t *buffer, int len);
 
 private:
+    DISALLOW_COPY_AND_ASSIGN(AudioEncoder);
     HANDLE_AACENCODER m_hdlr;
     AACENC_InfoStruct m_info;
     int m_aot;
     int m_samplerate;
     int m_channels;
     int m_bits_per_sample;
-    int16_t *m_convert_buf;
+    xutil::RecursiveMutex m_mutex;
+    xutil::Condition m_cond;
+    DECL_THREAD_ROUTINE(AudioEncoder, encode_routine);
+    xutil::Thread *m_thrd;
+    xutil::IOBuffer *m_iobuf;
+    volatile bool m_quit;
+    xfile::File *m_file;
 };
 
 jint openAudioEncoder(JNIEnv *env, jobject, jobject);
