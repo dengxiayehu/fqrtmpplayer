@@ -1,4 +1,6 @@
 #include "libfqrtmp_aac.h"
+#include "common.h"
+#include "xutil.h"
 
 static const char *aac_get_error(AACENC_ERROR err)
 {
@@ -176,7 +178,7 @@ jint openAudioEncoder(JNIEnv *env, jobject thiz, jobject audio_config)
     LibFQRtmp.convert_buf = (int16_t *) malloc(channels*2*LibFQRtmp.info.frameLength);
     if (!LibFQRtmp.convert_buf) {
         E("malloc for convert_buf for audio failed: %s",
-          strerror(errno));
+          ERRNOMSG);
         goto error;
     }
 

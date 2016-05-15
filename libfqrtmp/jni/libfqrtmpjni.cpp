@@ -4,9 +4,10 @@
 #include "native_crash_handler.h"
 #include "libfqrtmp_events.h"
 #include "libfqrtmp_aac.h"
+#include "common.h"
 #include "rtmp.h"
-#include "util.h"
 #include "config.h"
+#include "xutil.h"
 
 struct LibFQRtmp LibFQRtmp;
 

@@ -1,6 +1,7 @@
-#include "util.h"
+#include "common.h"
+#include "xutil.h"
 
-#define THREAD_NAME "util"
+#define THREAD_NAME "common"
 extern JNIEnv *jni_get_env(const char *name);
 
 jvalue jnu_get_field_by_name(jboolean *has_exception, jobject obj,

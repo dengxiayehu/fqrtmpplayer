@@ -1,7 +1,7 @@
 #ifndef _LIBFQRTMP_AAC_H_
 #define _LIBFQRTMP_AAC_H_
 
-#include "util.h"
+#include <jni.h>
 
 jint openAudioEncoder(JNIEnv *env, jobject, jobject);
 jint closeAudioEncoder(JNIEnv *env, jobject);

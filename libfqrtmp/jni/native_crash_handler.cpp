@@ -1,8 +1,6 @@
 #include "native_crash_handler.h"
-
-#include <signal.h>
-
-#include "util.h"
+#include "common.h"
+#include "xutil.h"
 
 static struct sigaction old_actions[NSIG];
 

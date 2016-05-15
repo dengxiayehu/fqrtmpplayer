@@ -32,9 +32,10 @@ LOCAL_SRC_FILES := libfqrtmpjni.cpp \
     libfqrtmp_events.cpp \
     libfqrtmp_aac.cpp \
     rtmp.cpp \
-    util.cpp
+    common.cpp \
+    $(wildcard xutil/*.cpp)
 
-LOCAL_C_INCLUDES := $(PRIVATE_INCDIR)
+LOCAL_C_INCLUDES := $(PRIVATE_INCDIR) xutil
 LOCAL_LDLIBS := -llog
 LOCAL_SHARED_LIBRARIES := rtmp
 LOCAL_STATIC_LIBRARIES := fdk-aac x264

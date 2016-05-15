@@ -6,7 +6,10 @@
 #include <librtmp/rtmp.h>
 
 #include "config.h"
-#include "util.h"
+#include "common.h"
+#include "xutil.h"
+
+using namespace xutil;
 
 struct rtmp_t {
     const char *input;

@@ -1,7 +1,5 @@
 #include "libfqrtmp_events.h"
-#include "util.h"
-
-#include <stdio.h>
+#include "common.h"
 
 #define THREAD_NAME "libfqrtmp_events"
 extern JNIEnv *jni_get_env(const char *name);
