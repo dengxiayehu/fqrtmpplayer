@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <libgen.h>
 #include <errno.h>
-#include <fdk-aac/aacenc_lib.h>
 #include <jni.h>
 #include <librtmp/log.h>
 #include <android/log.h>
@@ -14,6 +13,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+class AudioEncoder;
+class VideoEncoder;
 
 struct LibFQRtmp {
     jclass clazz;
@@ -26,24 +28,17 @@ struct LibFQRtmp {
     } String;
     jmethodID onNativeCrashID;
     jmethodID dispatchEventFromNativeID;
-
-    HANDLE_AACENCODER aac_enc;
-    AACENC_InfoStruct info;
-    struct {
-        int samplerate;
-        int channels;
-        int bits_per_sample;
-    } AudioConfig;
-    int16_t *convert_buf;
+    AudioEncoder *audio_enc;
+    VideoEncoder *video_enc;
 };
 
-extern struct LibFQRtmp LibFQRtmp;
+extern struct LibFQRtmp gfq;
 
 jstring jnu_new_string(const char *str);
 
 static inline void throw_IllegalArgumentException(JNIEnv *env, const char *error)
 {
-    env->ThrowNew(LibFQRtmp.IllegalArgumentException.clazz, error);
+    env->ThrowNew(gfq.IllegalArgumentException.clazz, error);
 }
 
 jvalue jnu_get_field_by_name(jboolean *has_exception, jobject obj,

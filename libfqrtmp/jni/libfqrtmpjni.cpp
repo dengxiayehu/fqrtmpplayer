@@ -3,13 +3,13 @@
 
 #include "native_crash_handler.h"
 #include "libfqrtmp_events.h"
-#include "libfqrtmp_aac.h"
+#include "audio_encoder.h"
 #include "common.h"
 #include "rtmp.h"
 #include "config.h"
 #include "xutil.h"
 
-struct LibFQRtmp LibFQRtmp;
+struct LibFQRtmp gfq;
 
 #define JNI_VERSION JNI_VERSION_1_2
 
@@ -48,7 +48,6 @@ JNIEnv *jni_get_env(const char *name)
     if (!env) {
         if (cached_jvm->GetEnv((void **) &env, JNI_VERSION) != JNI_OK) {
             JavaVMAttachArgs args;
-            jint result;
 
             args.version = JNI_VERSION;
             args.name = name;
@@ -102,26 +101,26 @@ JNI_OnLoad(JavaVM *jvm, void *reserved)
     } \
 } while (0)
 
-    GET_CLASS(LibFQRtmp.clazz,
+    GET_CLASS(gfq.clazz,
               "com/dxyh/libfqrtmp/LibFQRtmp", 1);
 
-    GET_CLASS(LibFQRtmp.IllegalArgumentException.clazz,
+    GET_CLASS(gfq.IllegalArgumentException.clazz,
               "java/lang/IllegalArgumentException", 1);
 
-    GET_CLASS(LibFQRtmp.String.clazz,
+    GET_CLASS(gfq.String.clazz,
               "java/lang/String", 1);
 
     GET_ID(GetStaticMethodID,
-           LibFQRtmp.onNativeCrashID,
-           LibFQRtmp.clazz,
+           gfq.onNativeCrashID,
+           gfq.clazz,
            "onNativeCrash", "()V");
 
     GET_ID(GetMethodID,
-           LibFQRtmp.dispatchEventFromNativeID,
-           LibFQRtmp.clazz,
+           gfq.dispatchEventFromNativeID,
+           gfq.clazz,
            "dispatchEventFromNative", "(IJLjava/lang/String;)V");
 
-    env->RegisterNatives(LibFQRtmp.clazz, method, NELEM(method));
+    env->RegisterNatives(gfq.clazz, method, NELEM(method));
 
     init_native_crash_handler();
 
@@ -139,9 +138,9 @@ JNI_OnUnload(JavaVM *jvm, void *reserved)
     if (jvm->GetEnv((void **) &env, JNI_VERSION))
         return;
 
-    env->DeleteGlobalRef(LibFQRtmp.clazz);
-    env->DeleteGlobalRef(LibFQRtmp.String.clazz);
-    env->DeleteGlobalRef(LibFQRtmp.IllegalArgumentException.clazz);
+    env->DeleteGlobalRef(gfq.clazz);
+    env->DeleteGlobalRef(gfq.String.clazz);
+    env->DeleteGlobalRef(gfq.IllegalArgumentException.clazz);
 
     pthread_key_delete(jni_env_key);
 }
@@ -161,8 +160,8 @@ static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
         return;
     }
 
-    LibFQRtmp.weak_thiz = env->NewWeakGlobalRef(thiz);
-    if (!LibFQRtmp.weak_thiz) {
+    gfq.weak_thiz = env->NewWeakGlobalRef(thiz);
+    if (!gfq.weak_thiz) {
         E("Create weak-reference for libfqrtmp instance failed");
         goto out;
     }
@@ -193,8 +192,8 @@ static void nativeRelease(JNIEnv *env, jobject thiz)
         rtmp_destroy(&r);
     }
 
-    if (!env->IsSameObject(LibFQRtmp.weak_thiz, NULL)) {
-        env->DeleteWeakGlobalRef(LibFQRtmp.weak_thiz);
+    if (!env->IsSameObject(gfq.weak_thiz, NULL)) {
+        env->DeleteWeakGlobalRef(gfq.weak_thiz);
     }
 }
 

@@ -1,6 +1,5 @@
-#include "libfqrtmp_aac.h"
+#include "audio_encoder.h"
 #include "common.h"
-#include "xutil.h"
 
 static const char *aac_get_error(AACENC_ERROR err)
 {
@@ -34,17 +33,27 @@ static const char *aac_get_error(AACENC_ERROR err)
     }
 }
 
-jint openAudioEncoder(JNIEnv *env, jobject thiz, jobject audio_config)
+AudioEncoder::AudioEncoder()
+{
+    memset(this, 0, sizeof(*this));
+}
+
+AudioEncoder::~AudioEncoder()
+{
+    if (m_hdlr) {
+        aacEncClose(&m_hdlr);
+        SAFE_FREE(m_convert_buf);
+    }
+}
+
+int AudioEncoder::init(jobject audio_config)
 {
     jvalue jval;
-    int aot;
-    int samplerate;
-    int channels;
     CHANNEL_MODE mode;
     int sce = 0, cpe = 0;
     int bitrate;
     AACENC_ERROR err;
-
+    
 #define CALL_METHOD(obj, name, signature) do { \
     jboolean has_exception = JNI_FALSE; \
     jval = jnu_call_method_by_name(&has_exception, obj, name, signature); \
@@ -55,33 +64,32 @@ jint openAudioEncoder(JNIEnv *env, jobject thiz, jobject audio_config)
 } while (0)
 
     CALL_METHOD(audio_config, "getChannelCount", "()I");
-    if ((err = aacEncOpen(&LibFQRtmp.aac_enc, 0, jval.i)) != AACENC_OK) {
+    if ((err = aacEncOpen(&m_hdlr, 0, jval.i)) != AACENC_OK) {
         E("Unable to open the encoder: %s",
           aac_get_error(err));
         goto error;
     }
-    channels = jval.i;
+    m_channels = jval.i;
 
     CALL_METHOD(audio_config, "getAudioObjectType", "()I");
-    if ((err = aacEncoder_SetParam(LibFQRtmp.aac_enc, AACENC_AOT,
+    if ((err = aacEncoder_SetParam(m_hdlr, AACENC_AOT,
                                    jval.i)) != AACENC_OK) {
         E("Unable to set the AOT %d: %s",
           jval.i, aac_get_error(err));
         goto error;
     }
-    aot = jval.i;
+    m_aot = jval.i;
 
     CALL_METHOD(audio_config, "getSamplerate", "()I");
-    if ((err = aacEncoder_SetParam(LibFQRtmp.aac_enc, AACENC_SAMPLERATE,
+    if ((err = aacEncoder_SetParam(m_hdlr, AACENC_SAMPLERATE,
                                    jval.i)) != AACENC_OK) {
         E("Unable to set the sample rate %d: %s\n",
           jval.i, aac_get_error(err));
         goto error;
     }
-    samplerate = jval.i;
-    LibFQRtmp.AudioConfig.samplerate = samplerate;
+    m_samplerate = jval.i;
 
-    switch (channels) {
+    switch (m_channels) {
     case 1: mode = MODE_1;       sce = 1; cpe = 0; break;
     case 2: mode = MODE_2;       sce = 0; cpe = 1; break;
     case 3: mode = MODE_1_2;     sce = 1; cpe = 1; break;
@@ -89,25 +97,24 @@ jint openAudioEncoder(JNIEnv *env, jobject thiz, jobject audio_config)
     case 5: mode = MODE_1_2_2;   sce = 1; cpe = 2; break;
     case 6: mode = MODE_1_2_2_1; sce = 2; cpe = 2; break;
     default:
-        E("Unsupported number of channels %d", channels);
+        E("Unsupported number of channels %d", m_channels);
         goto error;
     }
-    if ((err = aacEncoder_SetParam(LibFQRtmp.aac_enc, AACENC_CHANNELMODE,
+    if ((err = aacEncoder_SetParam(m_hdlr, AACENC_CHANNELMODE,
                                    mode)) != AACENC_OK) {
         E("Unable to set channel mode %d: %s\n",
           mode, aac_get_error(err));
         goto error;
     }
-    if ((err = aacEncoder_SetParam(LibFQRtmp.aac_enc, AACENC_CHANNELORDER,
+    if ((err = aacEncoder_SetParam(m_hdlr, AACENC_CHANNELORDER,
                                    1)) != AACENC_OK) {
         E("Unable to set wav channel order %d: %s\n",
           mode, aac_get_error(err));
         goto error;
     }
-    LibFQRtmp.AudioConfig.channels = channels;
 
     CALL_METHOD(audio_config, "getBitsPerSample", "()I");
-    LibFQRtmp.AudioConfig.bits_per_sample = jval.i;
+    m_bits_per_sample = jval.i;
 
 #define SET_FIELD(obj, name, signature, val) do { \
     jboolean has_exception = JNI_FALSE; \
@@ -120,18 +127,18 @@ jint openAudioEncoder(JNIEnv *env, jobject thiz, jobject audio_config)
 
     CALL_METHOD(audio_config, "getBitrate", "()I");
     if (jval.i <= 0) {
-        if (aot == AOT_PS) {
+        if (m_aot == AOT_PS) {
             sce = 1;
             cpe = 0;
         }
-        bitrate = (96*sce + 128*cpe) * samplerate / 44;
-        if (aot == AOT_SBR || aot == AOT_PS) {
+        bitrate = (96*sce + 128*cpe) * m_samplerate / 44;
+        if (m_aot == AOT_SBR || m_aot == AOT_PS) {
             bitrate /= 2;
         }
     } else {
         bitrate = jval.i;
     }
-    if ((err = aacEncoder_SetParam(LibFQRtmp.aac_enc, AACENC_BITRATE,
+    if ((err = aacEncoder_SetParam(m_hdlr, AACENC_BITRATE,
                                    bitrate)) != AACENC_OK) {
         E("Unable to set the bitrate %d: %s",
           bitrate, aac_get_error(err));
@@ -139,44 +146,44 @@ jint openAudioEncoder(JNIEnv *env, jobject thiz, jobject audio_config)
     }
     SET_FIELD(audio_config, "mBitrate", "I", bitrate);
 
-    if ((err = aacEncoder_SetParam(LibFQRtmp.aac_enc, AACENC_TRANSMUX,
+    if ((err = aacEncoder_SetParam(m_hdlr, AACENC_TRANSMUX,
                                    2 /* ADTS bitstream format */)) != AACENC_OK) {
         E("Unable to set the transmux format: %s",
           aac_get_error(err));
         goto error;
     }
 
-    if ((err = aacEncoder_SetParam(LibFQRtmp.aac_enc, AACENC_SIGNALING_MODE,
+    if ((err = aacEncoder_SetParam(m_hdlr, AACENC_SIGNALING_MODE,
                                    0)) != AACENC_OK) {
         E("Unable to set signaling mode: %s",
           aac_get_error(err));
         goto error;
     }
 
-    if ((err = aacEncoder_SetParam(LibFQRtmp.aac_enc, AACENC_AFTERBURNER,
+    if ((err = aacEncoder_SetParam(m_hdlr, AACENC_AFTERBURNER,
                                    1)) != AACENC_OK) {
         E("Unable to set afterburner: %s",
           aac_get_error(err));
         goto error;
     }
 
-    if ((err = aacEncEncode(LibFQRtmp.aac_enc, NULL, NULL, NULL, NULL)) != AACENC_OK) {
+    if ((err = aacEncEncode(m_hdlr, NULL, NULL, NULL, NULL)) != AACENC_OK) {
         E("Unable to initialize the encoder: %s\n",
           aac_get_error(err));
         goto error;
     }
 
-    if ((err = aacEncInfo(LibFQRtmp.aac_enc, &LibFQRtmp.info)) != AACENC_OK) {
+    if ((err = aacEncInfo(m_hdlr, &m_info)) != AACENC_OK) {
         E("Unable to get encoder info: %s",
           aac_get_error(err));
         goto error;
     }
 
-    SET_FIELD(audio_config, "mFrameLength", "I", LibFQRtmp.info.frameLength);
-    SET_FIELD(audio_config, "mEncoderDelay", "I", LibFQRtmp.info.encoderDelay);
+    SET_FIELD(audio_config, "mFrameLength", "I", m_info.frameLength);
+    SET_FIELD(audio_config, "mEncoderDelay", "I", m_info.encoderDelay);
 
-    LibFQRtmp.convert_buf = (int16_t *) malloc(channels*2*LibFQRtmp.info.frameLength);
-    if (!LibFQRtmp.convert_buf) {
+    m_convert_buf = (int16_t *) malloc(m_channels*2*m_info.frameLength);
+    if (!m_convert_buf) {
         E("malloc for convert_buf for audio failed: %s",
           ERRNOMSG);
         goto error;
@@ -185,24 +192,35 @@ jint openAudioEncoder(JNIEnv *env, jobject thiz, jobject audio_config)
     return 0;
 
 error:
-    closeAudioEncoder(env, thiz);
+    E("Init audio encoder failed");
     return -1;
 
 #undef CALL_AUDIO_CONFIG_METHOD
 #undef SET_FIELD
 }
 
+jint openAudioEncoder(JNIEnv *env, jobject thiz, jobject audio_config)
+{
+    gfq.audio_enc = new AudioEncoder;
+
+    if (gfq.audio_enc->init(audio_config) < 0) {
+        closeAudioEncoder(env, thiz);
+        return -1;
+    }
+
+    return 0;
+}
+
 jint closeAudioEncoder(JNIEnv *env, jobject thiz)
 {
-    if (LibFQRtmp.aac_enc) {
-        aacEncClose(&LibFQRtmp.aac_enc);
-        SAFE_FREE(LibFQRtmp.convert_buf);
-    }
+    SAFE_DELETE(gfq.audio_enc);
     return 0;
 }
 
 jint sendRawAudio(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
 {
+    return 0;
+#if 0
     AACENC_BufDesc in_buf = { 0 }, out_buf = { 0 };
     AACENC_InArgs in_args = { 0 };
     AACENC_OutArgs out_args = { 0 };
@@ -225,10 +243,10 @@ jint sendRawAudio(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
 
     for (i = 0; i < len/2; ++i) {
         const uint8_t *in = &buffer[2*i];
-        LibFQRtmp.convert_buf[i] = in[0] | (in[1] << 8);
+        gfq.convert_buf[i] = in[0] | (in[1] << 8);
     }
 
-    in_ptr = LibFQRtmp.convert_buf;
+    in_ptr = gfq.convert_buf;
     in_size = len;
     in_elem_size = 2;
 
@@ -248,7 +266,7 @@ jint sendRawAudio(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
     out_buf.bufSizes = &out_size;
     out_buf.bufElSizes = &out_elem_size;
 
-    if ((err = aacEncEncode(LibFQRtmp.aac_enc, &in_buf, &out_buf,
+    if ((err = aacEncEncode(m_hdlr, &in_buf, &out_buf,
                             &in_args, &out_args)) != AACENC_OK) {
         if (err == AACENC_ENCODE_EOF) {
             W("libfdk-aac eof?");
@@ -267,4 +285,5 @@ jint sendRawAudio(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
 done:
     env->ReleaseByteArrayElements(byte_arr, (jbyte *) buffer, 0);
     return ret;
+#endif
 }

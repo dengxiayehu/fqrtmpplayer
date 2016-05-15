@@ -213,7 +213,7 @@ jstring jnu_new_string(const char *str)
     jsize len;
     jstring result;
 
-    cid = env->GetMethodID(LibFQRtmp.String.clazz, "<init>", "([B)V");
+    cid = env->GetMethodID(gfq.String.clazz, "<init>", "([B)V");
     if (!cid)
         return NULL;
 
@@ -223,7 +223,7 @@ jstring jnu_new_string(const char *str)
         return NULL;
     env->SetByteArrayRegion(arr, 0, len, (const jbyte *) str);
 
-    result = (jstring) env->NewObject(LibFQRtmp.String.clazz, cid, arr);
+    result = (jstring) env->NewObject(gfq.String.clazz, cid, arr);
 
     env->DeleteLocalRef(arr);
     return result;
