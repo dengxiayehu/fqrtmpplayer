@@ -392,6 +392,11 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 	
 	private void startPreview() throws CameraHardwareException {
         if (mPausing || mActivity.isFinishing()) return;
+        
+        if (mLibFQRtmp.openVideoEncoder(mVideoConfig) < 0) {
+            mHandler.sendEmptyMessage(ERROR_OCCURRED);
+            return;
+        }
 
         ensureCameraDevice();
 
@@ -421,6 +426,9 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 	private void stopPreview() {
         if (mCameraDevice != null && mPreviewing) {
             Log.d(TAG, "stopPreview");
+            if (mLibFQRtmp != null) {
+                mLibFQRtmp.closeVideoEncoder();
+            }
             cancelAutoFocus();
             mCameraDevice.setPreviewCallbackWithBuffer(null);
             mCameraDevice.stopPreview();

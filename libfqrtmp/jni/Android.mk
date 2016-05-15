@@ -31,6 +31,7 @@ LOCAL_SRC_FILES := libfqrtmpjni.cpp \
     native_crash_handler.cpp \
     libfqrtmp_events.cpp \
     audio_encoder.cpp \
+    video_encoder.cpp \
     rtmp.cpp \
     common.cpp \
     xutil/xfile.cpp \

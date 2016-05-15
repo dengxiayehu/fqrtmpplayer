@@ -4,6 +4,7 @@
 #include "native_crash_handler.h"
 #include "libfqrtmp_events.h"
 #include "audio_encoder.h"
+#include "video_encoder.h"
 #include "common.h"
 #include "rtmp.h"
 #include "config.h"
@@ -23,7 +24,6 @@ static pthread_key_t jni_env_key;
 static jstring version(JNIEnv *, jobject);
 static void nativeNew(JNIEnv *, jobject, jstring cmdline);
 static void nativeRelease(JNIEnv *, jobject);
-static jint sendRawVideo(JNIEnv *, jobject, jbyteArray, jint);
 
 static JNINativeMethod method[] = {
     {"version", "()Ljava/lang/String;", (void *) version},
@@ -33,6 +33,8 @@ static JNINativeMethod method[] = {
     {"sendRawVideo", "([BI)I", (void *) sendRawVideo},
     {"openAudioEncoder", "(Lcom/dxyh/libfqrtmp/LibFQRtmp$AudioConfig;)I", (void *) openAudioEncoder},
     {"closeAudioEncoder", "()I", (void *) closeAudioEncoder},
+    {"openVideoEncoder", "(Lcom/dxyh/libfqrtmp/LibFQRtmp$VideoConfig;)I", (void *) openVideoEncoder},
+    {"closeVideoEncoder", "()I", (void *) closeVideoEncoder},
 };
 
 static void jni_detach_thread(void *data)
@@ -195,9 +197,4 @@ static void nativeRelease(JNIEnv *env, jobject thiz)
     if (!env->IsSameObject(gfq.weak_thiz, NULL)) {
         env->DeleteWeakGlobalRef(gfq.weak_thiz);
     }
-}
-
-static jint sendRawVideo(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
-{
-    return 0;
 }

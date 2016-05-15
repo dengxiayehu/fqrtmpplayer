@@ -152,6 +152,9 @@ public class LibFQRtmp {
     public native int openAudioEncoder(AudioConfig audioConfig);
     public native int closeAudioEncoder();
     
+    public native int openVideoEncoder(VideoConfig videoConfig);
+    public native int closeVideoEncoder();
+    
     private static OnNativeCrashListener sOnNativeCrashListener;
     
     public static interface OnNativeCrashListener {
