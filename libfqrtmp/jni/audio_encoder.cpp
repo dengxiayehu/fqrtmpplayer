@@ -236,6 +236,8 @@ unsigned int AudioEncoder::encode_routine(void *arg)
         goto done;
     }
 
+    D("aac encode_routine started ..");
+
     while (!m_quit) {
         AACENC_BufDesc in_buf = { 0 }, out_buf = { 0 };
         AACENC_InArgs in_args = { 0 };
@@ -310,6 +312,7 @@ unsigned int AudioEncoder::encode_routine(void *arg)
 done:
     SAFE_FREE(input_buf);
     SAFE_FREE(convert_buf);
+    D("aac encode_routine ended");
     return 0;
 }
 

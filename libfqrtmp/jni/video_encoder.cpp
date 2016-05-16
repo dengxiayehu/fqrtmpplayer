@@ -28,24 +28,22 @@ VideoEncoder::VideoEncoder() :
 
 VideoEncoder::~VideoEncoder()
 {
-    if (!m_enc) {
-        Packet *pkt = NULL;
-        int i;
+    Packet *pkt = NULL;
+    int i;
 
-        m_quit = true;
-        m_queue.cancel_wait();
-        JOIN_DELETE_THREAD(m_thrd);
-        for (i = 0; i < m_queue.size(); ++i) {
-            if (m_queue.pop(pkt) < 0)
-                break;
-            SAFE_DELETE(pkt);
-        }
-        x264_encoder_close(m_enc);
-        m_enc = NULL;
-
-        SAFE_DELETE(m_file_yuv);
-        SAFE_DELETE(m_file_x264);
+    m_quit = true;
+    m_queue.cancel_wait();
+    JOIN_DELETE_THREAD(m_thrd);
+    for (i = 0; i < m_queue.size(); ++i) {
+        if (m_queue.pop(pkt) < 0)
+            break;
+        SAFE_DELETE(pkt);
     }
+    x264_encoder_close(m_enc);
+    m_enc = NULL;
+
+    SAFE_DELETE(m_file_yuv);
+    SAFE_DELETE(m_file_x264);
 }
 
 static void X264_log(void *p, int level, const char *fmt, va_list args)
@@ -118,6 +116,7 @@ int VideoEncoder::init(jobject video_config)
         m_params.rc.i_rc_method = X264_RC_ABR;
         m_params.rc.i_bitrate = m_bitrate / 1000;
         m_params.rc.i_vbv_max_bitrate = m_bitrate * 1.2 / 1000;
+        m_params.rc.i_vbv_buffer_size = m_bitrate / 1000;
     }
 
     m_params.i_level_idc = m_level_idc;
@@ -193,6 +192,8 @@ unsigned int VideoEncoder::encode_routine(void *arg)
     int num_of_nals;
     int frame_size;
 
+    D("x264 encode_routine started ..");
+
     while (!m_quit) {
         std::auto_ptr<Packet> pkt_out(new Packet);
         int ret;
@@ -229,7 +230,7 @@ unsigned int VideoEncoder::encode_routine(void *arg)
                E("encode_nals failed");
                goto cleanup;
             }
-        } while (!ret && x264_encoder_delayed_frames(m_enc));
+        } while (!m_quit && !ret && x264_encoder_delayed_frames(m_enc));
 
         pkt_out->pts = pic_out.i_pts;
         pkt_out->dts = pic_out.i_dts;
@@ -241,6 +242,8 @@ unsigned int VideoEncoder::encode_routine(void *arg)
 cleanup:
         SAFE_DELETE(pkt);
     }
+
+    D("x264 encode_routine ended");
     return 0;
 }
 

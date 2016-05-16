@@ -24,7 +24,7 @@ public class LibFQRtmp {
     };
     
     public class VideoConfig {
-    	private int mCamcorderProfileId = CamcorderProfile.QUALITY_480P;
+    	private int mCamcorderProfileId = CamcorderProfile.QUALITY_LOW;
     	private final String mPreset = "ultrafast";
     	private final String mTune = "zerolatency";
     	private final String mProfile = "high";
