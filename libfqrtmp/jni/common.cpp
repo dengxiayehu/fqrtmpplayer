@@ -4,6 +4,21 @@
 #define THREAD_NAME "common"
 extern JNIEnv *jni_get_env(const char *name);
 
+Packet::Packet(uint8_t *data_, int size_, int pts_, int dts_, int duration_) :
+    size(size_), pts(pts_), dts(dts_), duration(duration_)
+{
+    assert(data_ && size_);
+
+    data = (uint8_t *) malloc(size * sizeof(uint8_t));
+    assert(data);
+    memcpy(data, data_, size);
+}
+
+Packet::~Packet()
+{
+    SAFE_FREE(data);
+}
+
 jvalue jnu_get_field_by_name(jboolean *has_exception, jobject obj,
                              const char *name, const char *signature)
 {

@@ -1,6 +1,8 @@
 #include "audio_encoder.h"
 #include "common.h"
 
+#define DUMP_ENCODED_AAC 0
+
 using namespace xutil;
 
 static const char *aac_get_error(AACENC_ERROR err)
@@ -37,12 +39,14 @@ static const char *aac_get_error(AACENC_ERROR err)
 
 AudioEncoder::AudioEncoder() :
     m_hdlr(NULL), m_aot(0), m_samplerate(0), m_channels(0), m_bits_per_sample(0),
-    m_cond(m_mutex), m_thrd(NULL), m_quit(false)
+    m_cond(m_mutex), m_thrd(NULL), m_quit(false), m_file(NULL)
 {
     m_iobuf = new IOBuffer;
 
+#if defined(DUMP_ENCODED_AAC) && (DUMP_ENCODED_AAC != 0)
     m_file = new xfile::File;
     m_file->open("/sdcard/fqrtmp.aac", "wb");
+#endif
 }
 
 AudioEncoder::~AudioEncoder()
@@ -215,6 +219,11 @@ int AudioEncoder::feed(uint8_t *buffer, int len)
     return 0;
 }
 
+volatile bool AudioEncoder::quit() const
+{
+    return m_quit;
+}
+
 unsigned int AudioEncoder::encode_routine(void *arg)
 {
     int input_size = m_channels * 2 * m_info.frameLength;
@@ -243,7 +252,7 @@ unsigned int AudioEncoder::encode_routine(void *arg)
         AutoLock l(m_mutex);
 
         while (!m_quit &&
-               GETAVAILABLEBYTESCOUNT(*m_iobuf) < input_size) {
+               GETAVAILABLEBYTESCOUNT(*m_iobuf) < (uint32_t) input_size) {
            m_cond.wait();
         }
 
@@ -292,8 +301,9 @@ unsigned int AudioEncoder::encode_routine(void *arg)
         }
 
         if (out_args.numOutBytes != 0) {
-            if (m_file != NULL)
+            if (m_file) {
                 m_file->write_buffer(outbuf, out_args.numOutBytes);
+            }
         }
     }
 
@@ -323,18 +333,22 @@ jint closeAudioEncoder(JNIEnv *env, jobject thiz)
 
 jint sendRawAudio(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
 {
-    uint8_t *buffer;
-    jboolean is_copy;
-    int ret;
+    int ret = 0;
 
-    buffer = (uint8_t *) env->GetByteArrayElements(byte_arr, &is_copy);
-    if (!buffer) {
-        E("Get audio buffer failed");
-        return -1;
+    if (gfq.audio_enc && !gfq.audio_enc->quit()) {
+        uint8_t *buffer;
+        jboolean is_copy;
+
+        buffer = (uint8_t *) env->GetByteArrayElements(byte_arr, &is_copy);
+        if (!buffer) {
+            E("Get audio buffer failed");
+            return -1;
+        }
+
+        ret = gfq.audio_enc->feed(buffer, len);
+
+        env->ReleaseByteArrayElements(byte_arr, (jbyte *) buffer, 0);
     }
 
-    ret = gfq.audio_enc->feed(buffer, len);
-
-    env->ReleaseByteArrayElements(byte_arr, (jbyte *) buffer, 0);
     return ret;
 }

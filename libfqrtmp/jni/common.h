@@ -10,9 +10,26 @@
 #include <librtmp/log.h>
 #include <android/log.h>
 
+#define TIME_BASE   1000000
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct Rational {
+    int num;
+    int den;
+};
+
+struct Packet {
+    uint8_t *data;
+    int size;
+    int64_t pts, dts;
+    int duration;
+
+    Packet(uint8_t *data_, int size_, int pts_ = 0, int dts_ = 0, int duration_ = 0);
+    ~Packet();
+};
 
 class AudioEncoder;
 class VideoEncoder;

@@ -13,22 +13,101 @@ public class LibFQRtmp {
     private VideoConfig mVideoConfig = new VideoConfig();
     private AudioConfig mAudioConfig = new AudioConfig();
     
-    @SuppressWarnings("unused")
+    public class Rational {
+    	public int num;
+    	public int den;
+    	
+    	public Rational(int num, int den) {
+    		this.num = num;
+    		this.den = den;
+    	}
+    };
+    
     public class VideoConfig {
-    	private int mCamcorderProfileId = CamcorderProfile.QUALITY_HIGH;
-        private boolean mDeblock = true;
-    	private String mPreset = "ultrafast";
-    	private String mTune = "zerolatency";
+    	private int mCamcorderProfileId = CamcorderProfile.QUALITY_480P;
+    	private final String mPreset = "ultrafast";
+    	private final String mTune = "zerolatency";
+    	private final String mProfile = "high";
     	private int mLevelIDC = -1;
     	private int mInputCSP = ImageFormat.NV21;
     	private int mBitrate = -1;
-    	private int mFPSNum = -1;
-    	private int mFPSDen = -1;
-    	private int mSarNum = -1;
-    	private int mSarDen = -1;
+    	private int mWidth = -1;
+    	private int mHeight = -1;
+    	private Rational mFPS;
+    	private int mIFrameInterval = 3;
+    	private final boolean mRepeatHeaders = true;
+    	private final int mBFrames = 0;
+    	private final boolean mDeblockingFilter = true;
     	
     	public int getCamcorderProfileId() {
     		return mCamcorderProfileId;
+    	}
+    	
+    	public String getPreset() {
+    		return mPreset;
+    	}
+    	
+    	public String getTune() {
+    		return mTune;
+    	}
+    	
+    	public String getProfile() {
+    		return mProfile;
+    	}
+    	
+    	public int getLevelIDC() {
+    		return mLevelIDC;
+    	}
+    	
+    	public void setInputCSP(int csp) {
+    		mInputCSP = csp;
+    	}
+    	public int getInputCSP() {
+    		return mInputCSP;
+    	}
+    	
+    	public void setWidth(int width) {
+    		mWidth = width;
+    	}
+    	public int getWidth() {
+    		return mWidth;
+    	}
+    	
+    	public void setFPS(Rational r) {
+    		mFPS = r;
+    	}
+    	public Rational getFPS() {
+    		return mFPS;
+    	}
+    	
+    	public void setIFrameInterval(int interval) {
+    		mIFrameInterval = interval;
+    	}
+    	public int getIFrameInterval() {
+    		return mIFrameInterval;
+    	}
+    	
+    	public void setHeight(int height) {
+    		mHeight = height;
+    	}
+    	public int getHeight() {
+    		return mHeight;
+    	}
+    	
+    	public boolean getRepeatHeaders() {
+    		return mRepeatHeaders;
+    	}
+    	
+    	public int getBFrames() {
+    		return mBFrames;
+    	}
+    	
+    	public boolean getDeblockingFilter() {
+    		return mDeblockingFilter;
+    	}
+    	
+    	public void setBitrate(int bitrate) {
+    		mBitrate = bitrate;
     	}
     	public int getBitrate() {
     		return mBitrate;

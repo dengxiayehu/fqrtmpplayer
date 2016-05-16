@@ -2,15 +2,6 @@ package com.dxyh.fqrtmpplayer;
 
 import java.util.List;
 
-import com.dxyh.fqrtmpplayer.camera.CameraHardwareException;
-import com.dxyh.fqrtmpplayer.camera.CameraHolder;
-import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
-import com.dxyh.fqrtmpplayer.gui.RotateImageView;
-import com.dxyh.fqrtmpplayer.gui.UiTools;
-import com.dxyh.fqrtmpplayer.util.Util;
-import com.dxyh.libfqrtmp.Event;
-import com.dxyh.libfqrtmp.LibFQRtmp;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -34,6 +25,15 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+
+import com.dxyh.fqrtmpplayer.camera.CameraHardwareException;
+import com.dxyh.fqrtmpplayer.camera.CameraHolder;
+import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
+import com.dxyh.fqrtmpplayer.gui.RotateImageView;
+import com.dxyh.fqrtmpplayer.gui.UiTools;
+import com.dxyh.fqrtmpplayer.util.Util;
+import com.dxyh.libfqrtmp.Event;
+import com.dxyh.libfqrtmp.LibFQRtmp;
 
 @SuppressWarnings("deprecation")
 public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
@@ -394,22 +394,26 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 	private void startPreview() throws CameraHardwareException {
         if (mPausing || mActivity.isFinishing()) return;
         
-        if (mLibFQRtmp.openVideoEncoder(mVideoConfig) < 0) {
-            mHandler.sendEmptyMessage(ERROR_OCCURRED);
-            return;
-        }
-
         ensureCameraDevice();
 
         if (mPreviewing) stopPreview();
         
         mProfile = CamcorderProfile.get(mCameraId, mVideoConfig.getCamcorderProfileId());
+        mVideoConfig.setFPS(mLibFQRtmp.new Rational(mProfile.videoFrameRate, 1));
+        mVideoConfig.setWidth(mProfile.videoFrameWidth);
+        mVideoConfig.setHeight(mProfile.videoFrameHeight);
+        mVideoConfig.setBitrate(mProfile.videoBitRate);
 
         setPreviewDisplay(mSurfaceHolder);
         Util.setCameraDisplayOrientation(mActivity, mCameraId, mCameraDevice);
         setCameraParameters(UPDATE_PARAM_ALL);
 
         mCameraDevice.setErrorCallback(mErrorCallback);
+        
+        if (mLibFQRtmp.openVideoEncoder(mVideoConfig) < 0) {
+            mHandler.sendEmptyMessage(ERROR_OCCURRED);
+            return;
+        }
 
         try {
             Log.d(TAG, "startPreview");
@@ -590,6 +594,7 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
         if (isSupported(imageFormat, mParameters.getSupportedPreviewFormats())) {
             mParameters.setPreviewFormat(imageFormat);
         }
+        mVideoConfig.setInputCSP(mParameters.getPreviewFormat());
 
         mCameraDevice.setParameters(mParameters);
         mParameters = mCameraDevice.getParameters();

@@ -18,6 +18,7 @@ public:
 
     int init(jobject audio_config);
     int feed(uint8_t *buffer, int len);
+    volatile bool quit() const;
 
 private:
     DISALLOW_COPY_AND_ASSIGN(AudioEncoder);
