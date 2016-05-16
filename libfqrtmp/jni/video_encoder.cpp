@@ -1,21 +1,28 @@
+#include <memory>
+
 #include "video_encoder.h"
 #include "xqueue.h"
 
-#define DUMP_RAW_YUV 0
+#define DUMP_YUV    0
+#define DUMP_X264   1
 
 #define THREAD_NAME "video_encoder"
 extern JNIEnv *jni_get_env(const char *name);
 
 VideoEncoder::VideoEncoder() :
-    m_num_of_frames(0), m_enc(NULL), m_thrd(NULL), m_quit(false), m_file(NULL)
+    m_num_of_frames(0), m_enc(NULL), m_thrd(NULL), m_quit(false), m_file_yuv(NULL), m_file_x264(NULL)
 {
     memset(&m_params, 0, sizeof(m_params));
 
     m_thrd = CREATE_THREAD_ROUTINE(encode_routine, NULL, false);
 
-#if defined(DUMP_RAW_YUV) && (DUMP_RAW_YUV != 0)
-    m_file = new xfile::File;
-    m_file->open("/sdcard/fqrtmp.yuv", "wb");
+#if defined(DUMP_YUV) && (DUMP_YUV != 0)
+    m_file_yuv = new xfile::File;
+    m_file_yuv->open("/sdcard/fqrtmp.yuv", "wb");
+#endif
+#if defined(DUMP_X264) && (DUMP_X264 != 0)
+    m_file_x264 = new xfile::File;
+    m_file_x264->open("/sdcard/fqrtmp.x264", "wb");
 #endif
 }
 
@@ -36,7 +43,8 @@ VideoEncoder::~VideoEncoder()
         x264_encoder_close(m_enc);
         m_enc = NULL;
 
-        SAFE_DELETE(m_file);
+        SAFE_DELETE(m_file_yuv);
+        SAFE_DELETE(m_file_x264);
     }
 }
 
@@ -117,8 +125,9 @@ int VideoEncoder::init(jobject video_config)
     m_params.i_bframe = m_b_frames;
 
     m_params.b_cabac = 1;
-    m_params.analyse.inter = X264_ANALYSE_I4x4;
-    m_params.analyse.intra = X264_ANALYSE_I4x4;
+    m_params.analyse.inter = X264_ANALYSE_I4x4 | X264_ANALYSE_I8x8 | X264_ANALYSE_PSUB16x16 | X264_ANALYSE_BSUB16x16;
+    m_params.analyse.intra = X264_ANALYSE_I4x4 | X264_ANALYSE_I8x8;
+    m_params.analyse.b_transform_8x8 = 1;
     m_params.analyse.i_subpel_refine = 3;
     m_params.analyse.i_me_method = X264_ME_DIA;
     m_params.analyse.i_me_range = 16;
@@ -173,12 +182,7 @@ int VideoEncoder::init(jobject video_config)
 int VideoEncoder::feed(uint8_t *buffer, int len)
 {
     Packet *pkt = new Packet(buffer, len);
-    m_queue.push(pkt);
-
-    if (m_file) {
-        m_file->write_buffer(buffer, len);
-    }
-    return 0;
+    return m_queue.push(pkt);
 }
 
 unsigned int VideoEncoder::encode_routine(void *arg)
@@ -190,19 +194,27 @@ unsigned int VideoEncoder::encode_routine(void *arg)
     int frame_size;
 
     while (!m_quit) {
+        std::auto_ptr<Packet> pkt_out(new Packet);
+        int ret;
+
         if (m_queue.pop(pkt) < 0)
             break;
 
         if (m_quit)
             break;
 
+        if (m_file_yuv) {
+            m_file_yuv->write_buffer(pkt->data, pkt->size);
+        }
+
         x264_picture_init(&m_pic);
         m_pic.img.i_csp = m_params.i_csp;
-        m_pic.img.i_plane = 3;
+        m_pic.img.i_plane = 2;
 
         m_pic.img.plane[0] = pkt->data;
         m_pic.img.plane[1] = m_pic.img.plane[0] + m_params.i_width * m_params.i_height;
-        m_pic.img.plane[2] = m_pic.img.plane[1] + m_params.i_width * m_params.i_height * 3 / 4;
+        m_pic.img.i_stride[0] = m_params.i_width;
+        m_pic.img.i_stride[1] = m_params.i_width;
         m_pic.i_pts = m_num_of_frames++;
 
         do {
@@ -211,14 +223,53 @@ unsigned int VideoEncoder::encode_routine(void *arg)
                 E("x264_encoder_encode failed");
                 goto cleanup;
             }
-        } while (x264_encoder_delayed_frames(m_enc));
+            
+            ret = encode_nals(pkt_out.get(), nals, num_of_nals);
+            if (ret < 0) {
+               E("encode_nals failed");
+               goto cleanup;
+            }
+        } while (!ret && x264_encoder_delayed_frames(m_enc));
+
+        pkt_out->pts = pic_out.i_pts;
+        pkt_out->dts = pic_out.i_dts;
+
+        if (m_file_x264) {
+            m_file_x264->write_buffer(pkt_out->data, pkt_out->size);
+        }
 
 cleanup:
-        x264_picture_clean(&pic_out);
-
         SAFE_DELETE(pkt);
     }
     return 0;
+}
+
+int VideoEncoder::encode_nals(Packet *pkt, const x264_nal_t *nals, int nnal)
+{
+    int i, size = 0;
+    uint8_t *p;
+
+    if (!nnal)
+        return 0;
+
+    for (i = 0; i < nnal; ++i)
+        size += nals[i].i_payload;
+
+    pkt->data = (uint8_t *) realloc(pkt->data, size);
+    if (!pkt->data) {
+        E("realloc for out-pkt failed: %s", ERRNOMSG);
+        return -1;
+    }
+
+    p = pkt->data;
+    pkt->size = size;
+
+    for (i = 0; i < nnal; ++i) {
+        memcpy(p, nals[i].p_payload, nals[i].i_payload);
+        p += nals[i].i_payload;
+    }
+
+    return 1;
 }
 
 volatile bool VideoEncoder::quit() const

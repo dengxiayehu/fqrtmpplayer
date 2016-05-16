@@ -27,6 +27,8 @@ private:
     int load_config(jobject video_config);
     void dump_config() const;
 
+    int encode_nals(Packet *pkt, const x264_nal_t *nals, int nnal);
+
 private:
     std::string m_preset;
     std::string m_tune;
@@ -49,7 +51,8 @@ private:
     xutil::Thread *m_thrd;
     Queue<Packet *> m_queue;
     volatile bool m_quit;
-    xfile::File *m_file;
+    xfile::File *m_file_yuv;
+    xfile::File *m_file_x264;
 };
 
 jint openVideoEncoder(JNIEnv *env, jobject, jobject);

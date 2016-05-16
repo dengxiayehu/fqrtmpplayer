@@ -1,7 +1,7 @@
 #include "audio_encoder.h"
 #include "common.h"
 
-#define DUMP_ENCODED_AAC 0
+#define DUMP_AAC    0
 
 using namespace xutil;
 
@@ -43,7 +43,7 @@ AudioEncoder::AudioEncoder() :
 {
     m_iobuf = new IOBuffer;
 
-#if defined(DUMP_ENCODED_AAC) && (DUMP_ENCODED_AAC != 0)
+#if defined(DUMP_AAC) && (DUMP_AAC != 0)
     m_file = new xfile::File;
     m_file->open("/sdcard/fqrtmp.aac", "wb");
 #endif
