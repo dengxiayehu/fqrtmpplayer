@@ -10,8 +10,6 @@
 #include <librtmp/log.h>
 #include <android/log.h>
 
-#define TIME_BASE   1000000
-
 #ifdef __cplusplus
 extern "C" {
 #endif

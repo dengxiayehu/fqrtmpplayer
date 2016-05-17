@@ -17,6 +17,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/file.h>
+#include <sched.h>
 #endif
 
 namespace xutil {
@@ -709,6 +710,26 @@ void rmdir_(const std::string &path)
     SAFE_FREE(dir);
 #else
     system_(STR(sprintf_("rm -rf %s", STR(path))));
+#endif
+}
+
+int cpu_num()
+{
+#ifdef _WIN32
+    return 1;
+#else
+#ifdef __ANDROID__
+    return sysconf(_SC_NPROCESSORS_CONF);
+#else
+    cpu_set_t p_aff;
+    int np = 0;
+    memset(&p_aff, 0, sizeof(p_aff));
+    if (sched_getaffinity(0, sizeof(p_aff), &p_aff))
+        return 1;
+    for (unsigned int bit = 0; bit < 8 * sizeof(p_aff); ++bit)
+        np += (((uint8_t *)&p_aff)[bit / 8] >> (bit % 8)) & 1;
+    return np;
+#endif
 #endif
 }
 

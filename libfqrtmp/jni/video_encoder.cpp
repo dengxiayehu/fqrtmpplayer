@@ -22,7 +22,7 @@ VideoEncoder::VideoEncoder() :
 #endif
 #if defined(DUMP_X264) && (DUMP_X264 != 0)
     m_file_x264 = new xfile::File;
-    m_file_x264->open("/sdcard/fqrtmp.x264", "wb");
+    m_file_x264->open("/sdcard/fqrtmp.h264", "wb");
 #endif
 }
 
@@ -93,18 +93,18 @@ int VideoEncoder::init(jobject video_config)
 
     x264_param_default(&m_params);
 
-    if (m_deblocking_filter) {
-        m_params.b_deblocking_filter = 1;
-        m_params.i_deblocking_filter_alphac0 = 0;
-        m_params.i_deblocking_filter_beta = 0;
-    }
-
     if (!m_preset.empty() || !m_tune.empty()) {
         if (x264_param_default_preset(&m_params, STR(m_preset), STR(m_tune)) < 0) {
             E("Error setting preset/tune %s/%s",
               STR(m_preset), STR(m_tune));
             return -1;
         }
+    }
+
+    if (m_deblocking_filter) {
+        m_params.b_deblocking_filter = 1;
+        m_params.i_deblocking_filter_alphac0 = 0;
+        m_params.i_deblocking_filter_beta = 0;
     }
 
     m_params.pf_log = X264_log;
@@ -123,29 +123,15 @@ int VideoEncoder::init(jobject video_config)
 
     m_params.i_bframe = m_b_frames;
 
-    m_params.b_cabac = 1;
-    m_params.analyse.inter = X264_ANALYSE_I4x4 | X264_ANALYSE_I8x8 | X264_ANALYSE_PSUB16x16 | X264_ANALYSE_BSUB16x16;
-    m_params.analyse.intra = X264_ANALYSE_I4x4 | X264_ANALYSE_I8x8;
-    m_params.analyse.b_transform_8x8 = 1;
-    m_params.analyse.i_subpel_refine = 3;
+    m_params.analyse.i_subpel_refine = 5;
     m_params.analyse.i_me_method = X264_ME_DIA;
     m_params.analyse.i_me_range = 16;
     m_params.analyse.b_chroma_me = 1;
-    m_params.analyse.i_mv_range = 512;
+    m_params.analyse.i_mv_range = -1;
     m_params.analyse.b_fast_pskip = 1;
     m_params.analyse.b_dct_decimate = 1;
 
-    m_params.i_cqm_preset = X264_CQM_FLAT;
-    memset(m_params.cqm_4iy, 16, 16);
-    memset(m_params.cqm_4ic, 16, 16);
-    memset(m_params.cqm_4py, 16, 16);
-    memset(m_params.cqm_4pc, 16, 16);
-    memset(m_params.cqm_8iy, 16, 64);
-    memset(m_params.cqm_8py, 16, 64);
-
     m_params.b_repeat_headers = m_repeat_headers ? 1 : 0;
-
-    m_params.b_aud = 0;
 
     if (!m_profile.empty()) {
         if (x264_param_apply_profile(&m_params, STR(m_profile)) < 0) {
@@ -159,12 +145,10 @@ int VideoEncoder::init(jobject video_config)
 
     m_params.i_fps_num = m_fps.num;
     m_params.i_fps_den = m_fps.den;
-    m_params.i_timebase_num = 1;
-    m_params.i_timebase_den = TIME_BASE;
 
     m_params.i_keyint_max = m_fps.num / m_fps.den * m_i_frame_interval;
 
-    m_params.i_threads = X264_SYNC_LOOKAHEAD_AUTO;
+    m_params.i_threads = xutil::cpu_num();
 
     m_params.b_annexb = 1;
 

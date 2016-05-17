@@ -176,6 +176,8 @@ char *strdup_(const char *s);
 
 void rmdir_(const std::string &path);
 
+int cpu_num();
+
 /////////////////////////////////////////////////////////////
 
 class Condition;
