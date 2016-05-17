@@ -65,6 +65,7 @@ public class MainActivity extends Activity {
     void handlePlay() {
     	UiTools.inputDialog(this,
                 MyApplication.getAppResources().getString(R.string.action_play),
+                "Any media uri",
                 new UiTools.OnInputDialogClickListener() {
             @Override
             public void onClick(DialogInterface dialog, final String input) {
@@ -78,6 +79,7 @@ public class MainActivity extends Activity {
     void handleLive() {
     	UiTools.inputDialog(this,
                 MyApplication.getAppResources().getString(R.string.action_live),
+                "rtmp://...",
                 new UiTools.OnInputDialogClickListener() {
             @Override
             public void onClick(DialogInterface dialog, final String input) {

@@ -22,6 +22,69 @@ include $(PREBUILT_STATIC_LIBRARY)
 ###################################
 include $(CLEAR_VARS)
 
+LOCAL_MODULE := anw.10
+
+LOCAL_SRC_FILES := ../../contrib/vlclibs/libanw.10.so
+include $(PREBUILT_SHARED_LIBRARY)
+###################################
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := anw.13
+
+LOCAL_SRC_FILES := ../../contrib/vlclibs/libanw.13.so
+include $(PREBUILT_SHARED_LIBRARY)
+###################################
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := anw.14
+
+LOCAL_SRC_FILES := ../../contrib/vlclibs/libanw.14.so
+include $(PREBUILT_SHARED_LIBRARY)
+###################################
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := anw.18
+
+LOCAL_SRC_FILES := ../../contrib/vlclibs/libanw.18.so
+include $(PREBUILT_SHARED_LIBRARY)
+###################################
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := anw.21
+
+LOCAL_SRC_FILES := ../../contrib/vlclibs/libanw.21.so
+include $(PREBUILT_SHARED_LIBRARY)
+###################################
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := iomx.10
+
+LOCAL_SRC_FILES := ../../contrib/vlclibs/libiomx.10.so
+include $(PREBUILT_SHARED_LIBRARY)
+###################################
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := iomx.13
+
+LOCAL_SRC_FILES := ../../contrib/vlclibs/libiomx.13.so
+include $(PREBUILT_SHARED_LIBRARY)
+###################################
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := iomx.14
+
+LOCAL_SRC_FILES := ../../contrib/vlclibs/libiomx.14.so
+include $(PREBUILT_SHARED_LIBRARY)
+###################################
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := vlcjni
+
+LOCAL_SRC_FILES := ../../contrib/vlclibs/libvlcjni.so
+include $(PREBUILT_SHARED_LIBRARY)
+###################################
+include $(CLEAR_VARS)
+
 CONTRIB_INSTALL := $(LOCAL_PATH)/../../contrib/install
 PRIVATE_INCDIR := $(CONTRIB_INSTALL)/include
 

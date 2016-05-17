@@ -19,6 +19,7 @@ import android.media.MediaRecorder.AudioSource;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
@@ -161,6 +162,12 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 	@Override
 	public void process(final String url) {
 	    Log.d(TAG, "process");
+	    
+	    if (TextUtils.isEmpty(url)) {
+	        UiTools.toast(mActivity, "Invalid live url", UiTools.SHORT_TOAST);
+	        mActivity.setContentView(R.layout.info);
+	        return;
+	    }
 	    
 	    mLibFQRtmp.setEventListener(this);
 	    Thread startLibFQRtmpThread = new Thread() {

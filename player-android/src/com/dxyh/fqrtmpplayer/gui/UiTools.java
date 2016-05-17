@@ -1,17 +1,18 @@
 package com.dxyh.fqrtmpplayer.gui;
 
+import com.dxyh.fqrtmpplayer.MyApplication;
+import com.dxyh.fqrtmpplayer.R;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.Toast;
-
-import com.dxyh.fqrtmpplayer.MyApplication;
-import com.dxyh.fqrtmpplayer.R;
 
 public class UiTools {
     @SuppressWarnings("unused")
@@ -21,13 +22,17 @@ public class UiTools {
         public void onClick(DialogInterface dialog, final String input);
     }
     public static void inputDialog(Activity activity, final String title,
+            final String hint,
             final OnInputDialogClickListener positive_listener,
             final OnInputDialogClickListener negative_listener) {
         final EditText edit = new EditText(MyApplication.getAppContext());
         edit.setFocusable(true);
-        edit.setHint(R.string.edit_hint);
+        if (!TextUtils.isEmpty(hint)) {
+            edit.setHint(hint);
+        } else {
+            edit.setHint(R.string.edit_hint);
+        }
         edit.setSingleLine(true);
-        edit.setText("rtmp://192.168.200.105:1935/live/va");
         edit.setSelection(edit.getText().toString().length());
         
         AlertDialog.Builder builder =
