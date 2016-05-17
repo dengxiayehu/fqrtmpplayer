@@ -23,9 +23,8 @@ struct Packet {
     uint8_t *data;
     int size;
     int64_t pts, dts;
-    int duration;
 
-    explicit Packet(uint8_t *data_ = NULL, int size_ = 0, int pts_ = 0, int dts_ = 0, int duration_ = 0);
+    explicit Packet(uint8_t *data_ = NULL, int size_ = 0, int pts_ = 0, int dts_ = 0);
     ~Packet();
 };
 

@@ -4,13 +4,13 @@
 #include "xqueue.h"
 
 #define DUMP_YUV    0
-#define DUMP_X264   1
+#define DUMP_X264   0
 
 #define THREAD_NAME "video_encoder"
 extern JNIEnv *jni_get_env(const char *name);
 
 VideoEncoder::VideoEncoder() :
-    m_num_of_frames(0), m_enc(NULL), m_thrd(NULL), m_quit(false), m_file_yuv(NULL), m_file_x264(NULL)
+    m_enc(NULL), m_thrd(NULL), m_quit(false), m_file_yuv(NULL), m_file_x264(NULL)
 {
     memset(&m_params, 0, sizeof(m_params));
 
@@ -159,6 +159,8 @@ int VideoEncoder::init(jobject video_config)
     }
 
     x264_encoder_parameters(m_enc, &m_params);
+
+    frac_init(&m_pts, 0, 1000 * m_fps.den, m_fps.num);
     return 0;
 }
 
@@ -200,7 +202,7 @@ unsigned int VideoEncoder::encode_routine(void *arg)
         m_pic.img.plane[1] = m_pic.img.plane[0] + m_params.i_width * m_params.i_height;
         m_pic.img.i_stride[0] = m_params.i_width;
         m_pic.img.i_stride[1] = m_params.i_width;
-        m_pic.i_pts = m_num_of_frames++;
+        m_pic.i_pts = m_pts.val;
 
         do {
             frame_size = x264_encoder_encode(m_enc, &nals, &num_of_nals, &m_pic, &pic_out);
@@ -223,6 +225,7 @@ unsigned int VideoEncoder::encode_routine(void *arg)
             m_file_x264->write_buffer(pkt_out->data, pkt_out->size);
         }
 
+        frac_add(&m_pts, 1000 * m_fps.den);
 cleanup:
         SAFE_DELETE(pkt);
     }

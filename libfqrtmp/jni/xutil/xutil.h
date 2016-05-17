@@ -180,6 +180,15 @@ int cpu_num();
 
 /////////////////////////////////////////////////////////////
 
+struct Frac {
+    int64_t val, num, den;
+};
+
+void frac_init(Frac *f, int64_t val, int64_t num, int64_t den);
+void frac_add(Frac *f, int64_t incr);
+
+/////////////////////////////////////////////////////////////
+
 class Condition;
 
 class Mutex {

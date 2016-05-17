@@ -4,8 +4,8 @@
 #define THREAD_NAME "common"
 extern JNIEnv *jni_get_env(const char *name);
 
-Packet::Packet(uint8_t *data_, int size_, int pts_, int dts_, int duration_) :
-    data(NULL), size(size_), pts(pts_), dts(dts_), duration(duration_)
+Packet::Packet(uint8_t *data_, int size_, int pts_, int dts_) :
+    data(NULL), size(size_), pts(pts_), dts(dts_)
 {
     if (size > 0) {
         data = (uint8_t *) malloc(size * sizeof(uint8_t));

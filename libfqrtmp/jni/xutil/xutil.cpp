@@ -735,6 +735,40 @@ int cpu_num()
 
 /////////////////////////////////////////////////////////////
 
+void frac_init(Frac *f, int64_t val, int64_t num, int64_t den)
+{
+    num += (den >> 1);
+    if (num >= den) {
+        val += num / den;
+        num  = num % den;
+    }
+    f->val = val;
+    f->num = num;
+    f->den = den;
+}           
+
+void frac_add(Frac *f, int64_t incr)
+{       
+    int64_t num, den;
+
+    num = f->num + incr;
+    den = f->den; 
+    if (num < 0) {
+        f->val += num / den;
+        num     = num % den;
+        if (num < 0) {
+            num += den;
+            f->val--;
+        }
+    } else if (num >= den) {
+        f->val += num / den;
+        num     = num % den;
+    }
+    f->num = num;
+}
+
+/////////////////////////////////////////////////////////////
+
 Mutex::Mutex(MutexType typ)
 {
 #ifdef _WIN32

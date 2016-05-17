@@ -43,7 +43,7 @@ private:
     bool m_repeat_headers;
     int m_b_frames;
     bool m_deblocking_filter;
-    int m_num_of_frames;
+    xutil::Frac m_pts;
     x264_param_t m_params;
     x264_t *m_enc;
     x264_picture_t m_pic;

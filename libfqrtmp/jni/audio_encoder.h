@@ -22,6 +22,7 @@ public:
 
 private:
     DISALLOW_COPY_AND_ASSIGN(AudioEncoder);
+    xutil::Frac m_pts;
     HANDLE_AACENCODER m_hdlr;
     AACENC_InfoStruct m_info;
     int m_aot;

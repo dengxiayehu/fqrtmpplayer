@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "audio_encoder.h"
 #include "common.h"
 
@@ -197,6 +199,8 @@ int AudioEncoder::init(jobject audio_config)
     SET_FIELD(audio_config, "mFrameLength", "I", m_info.frameLength);
     SET_FIELD(audio_config, "mEncoderDelay", "I", m_info.encoderDelay);
 
+    frac_init(&m_pts, 0, m_info.frameLength * 1000, m_samplerate);
+
     D("AudioEncoder: m_aot=%d, m_samplerate=%d, m_channels=%d, m_bits_per_sample=%d, frameLength=%d, encoderDelay=%d",
       m_aot, m_samplerate, m_channels, m_bits_per_sample, m_info.frameLength, m_info.encoderDelay);
 
@@ -303,9 +307,14 @@ unsigned int AudioEncoder::encode_routine(void *arg)
         }
 
         if (out_args.numOutBytes != 0) {
+            std::auto_ptr<Packet> pkt_out(
+                    new Packet(outbuf, out_args.numOutBytes, m_pts.val, m_pts.val));
+
             if (m_file) {
                 m_file->write_buffer(outbuf, out_args.numOutBytes);
             }
+
+            frac_add(&m_pts, m_info.frameLength * 1000);
         }
     }
 

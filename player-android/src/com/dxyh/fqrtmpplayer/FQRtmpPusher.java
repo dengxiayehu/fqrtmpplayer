@@ -111,6 +111,7 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
     
     private HandlerThread mAudioHandlerThread = null;
     
+    private boolean mPlayOwnVoice = false;
     private AudioPlayer mAudioPlayer = null;
 
     private final Handler mHandler = new MainHandler();
@@ -294,8 +295,10 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
     				return -1;
     			}
     			
-    			mAudioPlayer = new AudioPlayer();
-    			mAudioPlayer.prepare(mAudioConfig);
+    			if (mPlayOwnVoice) {
+	    			mAudioPlayer = new AudioPlayer();
+	    			mAudioPlayer.prepare(mAudioConfig);
+    			}
     			
     			mAudioRecord.setRecordPositionUpdateListener(this, audioHandler);
     			mAudioRecord.setPositionNotificationPeriod(framePeriod);
