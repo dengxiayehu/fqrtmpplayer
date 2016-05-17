@@ -1,12 +1,13 @@
 #include <jni.h>
+#include <getopt.h>
 #include <pthread.h>
 
 #include "native_crash_handler.h"
 #include "libfqrtmp_events.h"
+#include "rtmp_handler.h"
 #include "audio_encoder.h"
 #include "video_encoder.h"
 #include "common.h"
-#include "rtmp.h"
 #include "config.h"
 #include "xutil.h"
 
@@ -16,7 +17,6 @@ struct LibFQRtmp gfq;
 
 #define THREAD_NAME "libfqrtmpjni"
 
-static rtmp_t *r;
 static JavaVM *cached_jvm;
 
 static pthread_key_t jni_env_key;
@@ -152,6 +152,60 @@ static jstring version(JNIEnv *env, jobject thiz)
     return jnu_new_string(VERSION_MESSAGE);
 }
 
+static std::string liveurl;
+
+static int parse_arg(const char *str)
+{
+    int n = 3, argc = 0;
+    const char **argv =
+        (const char **) malloc(n * sizeof(const char *));
+    char *cmdline = strdup(str);
+    const char *delim = " ";
+    const char *p = strtok(cmdline, delim);
+    int retval = 0;
+
+    argv[argc++] = "libfqrtmp";
+    while (p) {
+        if (argc == n)
+           argv = (const char **) realloc(argv, (n+=2)*sizeof(const char *));
+        argv[argc++] = p;
+        p = strtok(NULL, delim);
+    }
+
+    BEGIN
+    struct option longopts[] = {
+        {"live",    required_argument, NULL, 'L'},
+        // TODO: other options
+        {0, 0, 0, 0}
+    };
+    int ch;
+
+    optind = 0;
+    while ((ch = getopt_long(argc, (char * const *) argv,
+                             ":L:W;", longopts, NULL)) != -1) {
+        switch (ch) {
+        case 'L':
+            liveurl = optarg;
+            break;
+
+        case 0:
+            break;
+
+        case '?':
+        default:
+            E("Unknown option: %c", optopt);
+            retval = -1;
+            goto out;
+        }
+    }
+    END
+
+out:
+    SAFE_FREE(argv);
+    SAFE_FREE(cmdline);
+    return retval;
+}
+
 static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
 {
     const char *str;
@@ -162,6 +216,11 @@ static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
         return;
     }
 
+    if (parse_arg(str) < 0) {
+        E("parse_arg failed");
+        goto out;
+    }
+
     gfq.weak_thiz = env->NewWeakGlobalRef(thiz);
     if (!gfq.weak_thiz) {
         E("Create weak-reference for libfqrtmp instance failed");
@@ -170,18 +229,14 @@ static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
 
     libfqrtmp_event_send(OPENING, 0, jnu_new_string(""));
 
-    r = rtmp_init(str);
-    if (r) {
-        if (rtmp_connect(r) < 0) {
-            libfqrtmp_event_send(ENCOUNTERED_ERROR,
-                                 -1001, jnu_new_string("rtmp_connect failed"));
-        } else {
-            libfqrtmp_event_send(CONNECTED, 0, jnu_new_string(""));
-        }
-    } else {
+    gfq.rtmp_hdlr = new RtmpHandler;
+    if (gfq.rtmp_hdlr->connect(liveurl) < 0) {
         libfqrtmp_event_send(ENCOUNTERED_ERROR,
-                             -1001, jnu_new_string("rtmp_init failed"));
+                             -1001, jnu_new_string("rtmp_connect failed"));
+        goto out;
     }
+
+    libfqrtmp_event_send(CONNECTED, 0, jnu_new_string(""));
 
 out:
     env->ReleaseStringUTFChars(cmdline, str);
@@ -189,10 +244,7 @@ out:
 
 static void nativeRelease(JNIEnv *env, jobject thiz)
 {
-    if (r) {
-        rtmp_disconnect(r);
-        rtmp_destroy(&r);
-    }
+    SAFE_DELETE(gfq.rtmp_hdlr);
 
     if (!env->IsSameObject(gfq.weak_thiz, NULL)) {
         env->DeleteWeakGlobalRef(gfq.weak_thiz);

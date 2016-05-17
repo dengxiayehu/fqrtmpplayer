@@ -4,7 +4,6 @@
 #include <queue>
 
 #include "xutil.h"
-#include "xlog.h"
 
 template <typename T>
 class Queue {

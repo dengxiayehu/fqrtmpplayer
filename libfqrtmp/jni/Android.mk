@@ -32,10 +32,12 @@ LOCAL_SRC_FILES := libfqrtmpjni.cpp \
     libfqrtmp_events.cpp \
     audio_encoder.cpp \
     video_encoder.cpp \
-    rtmp.cpp \
+    rtmp_handler.cpp \
+    raw_parser.cpp \
     common.cpp \
     xutil/xfile.cpp \
-    xutil/xutil.cpp
+    xutil/xutil.cpp \
+    xutil/xmedia.cpp
 
 LOCAL_C_INCLUDES := $(PRIVATE_INCDIR) $(LOCAL_PATH)/xutil
 LOCAL_CFLAGS := -Wall

@@ -1,6 +1,7 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+#include <vector>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -9,6 +10,8 @@
 #include <jni.h>
 #include <librtmp/log.h>
 #include <android/log.h>
+
+#include "xtype.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,8 +31,22 @@ struct Packet {
     ~Packet();
 };
 
+typedef std::pair<uint32_t, byte *> NaluItem;
+typedef struct Nalu {
+    std::vector<NaluItem *> *dat;
+} Nalu;
+
+enum RTMPChannel {
+    RTMP_NETWORK_CHANNEL = 2,
+    RTMP_SYSTEM_CHANNEL,
+    RTMP_AUDIO_CHANNEL,
+    RTMP_VIDEO_CHANNEL   = 6,
+    RTMP_SOURCE_CHANNEL  = 8,
+};
+
 class AudioEncoder;
 class VideoEncoder;
+class RtmpHandler;
 
 struct LibFQRtmp {
     jclass clazz;
@@ -44,6 +61,7 @@ struct LibFQRtmp {
     jmethodID dispatchEventFromNativeID;
     AudioEncoder *audio_enc;
     VideoEncoder *video_enc;
+    RtmpHandler *rtmp_hdlr;
 };
 
 extern struct LibFQRtmp gfq;

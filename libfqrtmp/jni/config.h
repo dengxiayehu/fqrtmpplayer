@@ -9,4 +9,6 @@
 #define RTMP_MAX_PLAY_BUFSIZE   (10*1024*1024) // 10M
 #define RTMP_CHUNK_SIZE         2048
 
+#define NEW_STREAM_TIMESTAMP_THESHO 300
+
 #endif /* end of _CONFIG_H_ */
