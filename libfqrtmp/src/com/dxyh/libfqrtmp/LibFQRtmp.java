@@ -30,10 +30,10 @@ public class LibFQRtmp {
     	private final String mProfile = "baseline";
     	private int mLevelIDC = -1;
     	private int mInputCSP = ImageFormat.NV21;
-    	private int mBitrate = 200 * 1000; // Temporary fixed
+    	private int mBitrate = 300 * 1000; // Temporary fixed
     	private int mWidth = -1;
     	private int mHeight = -1;
-    	private Rational mFPS = new Rational(12, 1); // Temporary fixed
+    	private Rational mFPS = new Rational(15, 1); // Temporary fixed
     	private int mIFrameInterval = 3;
     	private final boolean mRepeatHeaders = true;
     	private final int mBFrames = 0;

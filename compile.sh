@@ -1,5 +1,5 @@
 #! /usr/bin/env bash
-set -e
+# compile.sh
 
 if [ -z "$ANDROID_NDK" -o -z "$ANDROID_SDK" ]; then
     echo "You must define ANDROID_NDK, ANDROID_SDK before starting."
@@ -17,3 +17,4 @@ fi
 
 bash contrib/compile-contrib.sh
 bash libfqrtmp/compile-libfqrtmp.sh
+bash player-android/compile-player-android.sh

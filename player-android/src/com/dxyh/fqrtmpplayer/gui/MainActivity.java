@@ -3,18 +3,18 @@ package com.dxyh.fqrtmpplayer.gui;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import com.dxyh.fqrtmpplayer.FQRtmpPlayer;
+import com.dxyh.fqrtmpplayer.FQRtmpPusher;
+import com.dxyh.fqrtmpplayer.IFQRtmp;
+import com.dxyh.fqrtmpplayer.MyApplication;
+import com.dxyh.fqrtmpplayer.R;
+
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
-
-import com.dxyh.fqrtmpplayer.FQRtmpPlayer;
-import com.dxyh.fqrtmpplayer.FQRtmpPusher;
-import com.dxyh.fqrtmpplayer.IFQRtmp;
-import com.dxyh.fqrtmpplayer.MyApplication;
-import com.dxyh.fqrtmpplayer.R;
 
 public class MainActivity extends Activity {
     public static final String TAG = "MainActivity";
@@ -91,6 +91,7 @@ public class MainActivity extends Activity {
     }
     
     void handleAbout() {
+        UiTools.toast(this, "Thanks for your attention.", UiTools.SHORT_TOAST);
         resetFQRtmp();
     }
     

@@ -1,5 +1,5 @@
 #! /usr/bin/env bash
-set -e
+# compile-libfqrtmp.sh
 
 ABS_DIR="$(cd "$(dirname "$0")"; pwd)"
 cd "$ABS_DIR"

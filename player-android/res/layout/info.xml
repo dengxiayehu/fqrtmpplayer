@@ -9,12 +9,22 @@
         android:text="@string/info"
         android:textSize="24sp"
         android:textColor="@color/info" />
-    <TextView
+    <TextView android:id="@+id/tv_author"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/tv_info"
         android:layout_alignParentRight="true"
         android:text="@string/author"
+        android:textSize="13sp"
+        android:textColor="@color/author"
+        android:layout_marginRight="30dip"
+        android:layout_marginTop="5dip" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_author"
+        android:layout_alignParentRight="true"
+        android:text="@string/QQ"
         android:textSize="13sp"
         android:textColor="@color/author"
         android:layout_marginRight="30dip"
