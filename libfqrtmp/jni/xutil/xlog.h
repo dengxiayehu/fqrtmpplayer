@@ -25,7 +25,7 @@ static inline int libfqrtmp_log_print(const char *file, const int line,
     char buf[4096];
     int ret;
 
-    ret = snprintf(buf, 4096, "[%s:%d] ", file, line);
+    ret = snprintf(buf, 4096, "[%s:%04d] ", file, line);
 
     va_list args;
     va_start(args, fmt);

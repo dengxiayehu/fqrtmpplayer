@@ -128,8 +128,8 @@ int VideoRawParser::process(byte *dat, uint32_t len)
     }
 
 #ifdef XDEBUG
-    D("Video nalus#: %u, ignored#: %u",
-            m_nalus.size(), nalu_ignored);
+    D("Video nalus#: %u, ignored#: %u, addr: ",
+      m_nalus.size(), nalu_ignored, dat);
     if (m_key_frame) {
         D("m_sps_len=%u, first 4 bytes is: %02x %02x %02x %02x",
           m_sps_len, m_sps[0], m_sps[1], m_sps[2], m_sps[3]);
@@ -138,14 +138,11 @@ int VideoRawParser::process(byte *dat, uint32_t len)
     }
     uint32_t nalu_len = 0;
     foreach(m_nalus, it) {
-        D("length=%u, first 4 bytes is: %02x %02x %02x %02x",
+        D("%p, length=%u, first 4 bytes is: %02x %02x %02x %02x",
+          (*it)->second,
           (*it)->first,
           (*it)->second[0], (*it)->second[1],
           (*it)->second[2], (*it)->second[3]);
-        nalu_len += (*it)->first;
-    }
-    if (nalu_len + (m_nalus.size() + nalu_ignored)*4 != len) {
-        W("Parse startcode from video frame failed (ignored)");
     }
 #endif
     return 0;

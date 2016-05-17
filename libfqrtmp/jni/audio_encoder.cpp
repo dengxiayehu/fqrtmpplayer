@@ -1,6 +1,7 @@
 #include <memory>
 
 #include "audio_encoder.h"
+#include "rtmp_handler.h"
 #include "common.h"
 
 #define DUMP_AAC    0
@@ -313,6 +314,9 @@ unsigned int AudioEncoder::encode_routine(void *arg)
             if (m_file) {
                 m_file->write_buffer(outbuf, out_args.numOutBytes);
             }
+
+            if (gfq.rtmp_hdlr)
+                gfq.rtmp_hdlr->send_audio(pkt_out->pts, pkt_out->data, pkt_out->size);
 
             frac_add(&m_pts, m_info.frameLength * 1000);
         }

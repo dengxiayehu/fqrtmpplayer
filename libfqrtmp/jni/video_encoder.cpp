@@ -1,6 +1,7 @@
 #include <memory>
 
 #include "video_encoder.h"
+#include "rtmp_handler.h"
 #include "xqueue.h"
 
 #define DUMP_YUV    0
@@ -224,6 +225,9 @@ unsigned int VideoEncoder::encode_routine(void *arg)
         if (m_file_x264) {
             m_file_x264->write_buffer(pkt_out->data, pkt_out->size);
         }
+
+        if (gfq.rtmp_hdlr)
+            gfq.rtmp_hdlr->send_video(pkt_out->pts, pkt_out->data, pkt_out->size);
 
         frac_add(&m_pts, 1000 * m_fps.den);
 cleanup:
