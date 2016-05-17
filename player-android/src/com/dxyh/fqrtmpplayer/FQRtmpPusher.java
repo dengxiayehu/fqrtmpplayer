@@ -171,7 +171,6 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 	    };
 	    startLibFQRtmpThread.start();
 	    
-	    
 	    Thread startPreviewThread = new Thread(new Runnable() {
             public void run() {
                 try {
@@ -399,10 +398,8 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
         if (mPreviewing) stopPreview();
         
         mProfile = CamcorderProfile.get(mCameraId, mVideoConfig.getCamcorderProfileId());
-        mVideoConfig.setFPS(mLibFQRtmp.new Rational(mProfile.videoFrameRate, 1));
         mVideoConfig.setWidth(mProfile.videoFrameWidth);
         mVideoConfig.setHeight(mProfile.videoFrameHeight);
-        mVideoConfig.setBitrate(mProfile.videoBitRate);
 
         setPreviewDisplay(mSurfaceHolder);
         Util.setCameraDisplayOrientation(mActivity, mCameraId, mCameraDevice);
@@ -538,10 +535,13 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
     }
 	
 	private void updateCameraParametersInitialize() {
+		int fps = mVideoConfig.getFPSInt();
         List<Integer> frameRates = mParameters.getSupportedPreviewFrameRates();
-        if (frameRates != null && frameRates.contains(Integer.valueOf(mProfile.videoFrameRate))) {
-            Log.d(TAG, "set fps " + mProfile.videoFrameRate);
-            mParameters.setPreviewFrameRate(mProfile.videoFrameRate);
+        if (frameRates != null && frameRates.contains(Integer.valueOf(fps))) {
+            Log.d(TAG, "set fps " + fps);
+            mParameters.setPreviewFrameRate(fps);
+        } else {
+        	Log.w(TAG, "fps(" + fps + ") not supported");
         }
     }
 	
@@ -560,7 +560,7 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
         mParameters = mCameraDevice.getParameters();
 
         mParameters.setPreviewSize(mProfile.videoFrameWidth, mProfile.videoFrameHeight);
-        mParameters.setPreviewFrameRate(mProfile.videoFrameRate);
+        mParameters.setPreviewFrameRate(mVideoConfig.getFPSInt());
         
         String sceneMode = Camera.Parameters.SCENE_MODE_AUTO;
         if (isSupported(sceneMode, mParameters.getSupportedSceneModes())) {

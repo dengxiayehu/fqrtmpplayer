@@ -24,20 +24,20 @@ public class LibFQRtmp {
     };
     
     public class VideoConfig {
-    	private int mCamcorderProfileId = CamcorderProfile.QUALITY_LOW;
+    	private int mCamcorderProfileId = CamcorderProfile.QUALITY_480P;
     	private final String mPreset = "ultrafast";
     	private final String mTune = "zerolatency";
-    	private final String mProfile = "high";
+    	private final String mProfile = "baseline";
     	private int mLevelIDC = -1;
     	private int mInputCSP = ImageFormat.NV21;
-    	private int mBitrate = -1;
+    	private int mBitrate = 450 * 1000; // Temporary fixed
     	private int mWidth = -1;
     	private int mHeight = -1;
-    	private Rational mFPS;
+    	private Rational mFPS = new Rational(15, 1); // Temporary fixed
     	private int mIFrameInterval = 3;
     	private final boolean mRepeatHeaders = true;
     	private final int mBFrames = 0;
-    	private final boolean mDeblockingFilter = true;
+    	private final boolean mDeblockingFilter = false;
     	
     	public int getCamcorderProfileId() {
     		return mCamcorderProfileId;
@@ -78,6 +78,9 @@ public class LibFQRtmp {
     	}
     	public Rational getFPS() {
     		return mFPS;
+    	}
+    	public int getFPSInt() {
+    		return mFPS.num / mFPS.den;
     	}
     	
     	public void setIFrameInterval(int interval) {
