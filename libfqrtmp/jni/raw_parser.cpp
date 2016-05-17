@@ -1,7 +1,7 @@
 #include "raw_parser.h"
 #include "xmedia.h"
 
-#define XDEBUG
+//#define XDEBUG
 
 using namespace xmedia;
 
@@ -136,7 +136,6 @@ int VideoRawParser::process(byte *dat, uint32_t len)
         D("m_pps_len=%u, first 4 bytes is: %02x %02x %02x %02x",
           m_pps_len, m_pps[0], m_pps[1], m_pps[2], m_pps[3]);
     }
-    uint32_t nalu_len = 0;
     foreach(m_nalus, it) {
         D("%p, length=%u, first 4 bytes is: %02x %02x %02x %02x",
           (*it)->second,

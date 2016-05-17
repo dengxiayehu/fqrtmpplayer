@@ -716,8 +716,6 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 
         if (mPreviewing && holder.isCreating()) {
             setPreviewDisplay(holder);
-        } else {
-            restartPreview();
         }
 
         if (!mFirstTimeInitialized) {
