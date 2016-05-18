@@ -32,6 +32,8 @@ VideoEncoder::~VideoEncoder()
     Packet *pkt = NULL;
     int i;
 
+    D("Average fps is: %.2f", m_fps_calc.get_fps());
+
     m_quit = true;
     m_queue.cancel_wait();
     JOIN_DELETE_THREAD(m_thrd);
@@ -110,14 +112,18 @@ int VideoEncoder::init(jobject video_config)
 
     m_params.pf_log = X264_log;
     m_params.p_log_private = this;
-    m_params.i_log_level = X264_LOG_DEBUG;
+    m_params.i_log_level = X264_LOG_INFO;
     m_params.i_csp = convert_pix_fmt((ImageFormat) m_input_csp);
 
     if (m_bitrate > 0) {
-        m_params.rc.i_rc_method = X264_RC_ABR;
         m_params.rc.i_bitrate = m_bitrate / 1000;
-        m_params.rc.i_vbv_max_bitrate = m_bitrate * 1.2 / 1000;
         m_params.rc.i_vbv_buffer_size = m_bitrate / 1000;
+        m_params.rc.i_vbv_max_bitrate = m_bitrate * 1.2 / 1000;
+        m_params.rc.i_rc_method = X264_RC_CRF;
+        m_params.rc.f_rf_constant = 28;
+        m_params.rc.i_qp_min = 20;
+        m_params.rc.i_qp_max = 69;
+        m_params.rc.i_qp_step = 4;
     }
 
     m_params.i_level_idc = m_level_idc;
@@ -226,8 +232,11 @@ unsigned int VideoEncoder::encode_routine(void *arg)
             m_file_x264->write_buffer(pkt_out->data, pkt_out->size);
         }
 
-        if (gfq.rtmp_hdlr)
+        if (gfq.rtmp_hdlr) {
             gfq.rtmp_hdlr->send_video(pkt_out->pts, pkt_out->data, pkt_out->size);
+        }
+
+        m_fps_calc.check();
 
         frac_add(&m_pts, 1000 * m_fps.den);
 cleanup:

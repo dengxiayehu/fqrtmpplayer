@@ -8,6 +8,7 @@
 #include "common.h"
 #include "xqueue.h"
 #include "xfile.h"
+#include "xmedia.h"
 #include "xutil.h"
 
 #ifdef __cplusplus
@@ -53,6 +54,7 @@ private:
     volatile bool m_quit;
     xfile::File *m_file_yuv;
     xfile::File *m_file_x264;
+    xmedia::FPSCalc m_fps_calc;
 };
 
 jint openVideoEncoder(JNIEnv *env, jobject, jobject);

@@ -315,8 +315,9 @@ unsigned int AudioEncoder::encode_routine(void *arg)
                 m_file->write_buffer(outbuf, out_args.numOutBytes);
             }
 
-            if (gfq.rtmp_hdlr)
+            if (gfq.rtmp_hdlr) {
                 gfq.rtmp_hdlr->send_audio(pkt_out->pts, pkt_out->data, pkt_out->size);
+            }
 
             frac_add(&m_pts, m_info.frameLength * 1000);
         }
