@@ -30,6 +30,24 @@ private:
 
     int encode_nals(Packet *pkt, const x264_nal_t *nals, int nnal);
 
+    struct FPSCtrl {
+        int64_t a, b;
+        int last_frame;
+        int get_frame;
+        int n;
+        int64_t dropped_frames;
+        int64_t adoped_frames;
+        uint64_t capture_start_time;
+        uint64_t start_timestamp;
+        bool first_timestamp;
+        uint64_t avg_timestamp_per_frame;
+        uint64_t tgt_avg_time_per_frame;
+        int64_t low_diff_accept_frames;
+        int tgt_fps;
+
+        int init(int tgt_fps, int orig_fps = 30);
+    };
+
 private:
     std::string m_preset;
     std::string m_tune;
@@ -40,6 +58,7 @@ private:
     int m_width;
     int m_height;
     Rational m_fps;
+    Rational m_orig_fps;
     int m_i_frame_interval;
     bool m_repeat_headers;
     int m_b_frames;
@@ -56,6 +75,7 @@ private:
     xfile::File *m_file_yuv;
     xfile::File *m_file_x264;
     xmedia::FPSCalc m_fps_calc;
+    FPSCtrl m_fps_ctrl;
 };
 
 jint openVideoEncoder(JNIEnv *env, jobject, jobject);

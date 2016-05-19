@@ -4,8 +4,12 @@
 #include "rtmp_handler.h"
 #include "xqueue.h"
 
+//#define XDEBUG
+
 #define DUMP_YUV    0
 #define DUMP_X264   0
+
+using namespace xutil;
 
 #define THREAD_NAME "video_encoder"
 extern JNIEnv *jni_get_env(const char *name);
@@ -47,6 +51,29 @@ VideoEncoder::~VideoEncoder()
 
     SAFE_DELETE(m_file_yuv);
     SAFE_DELETE(m_file_x264);
+}
+
+int VideoEncoder::FPSCtrl::init(int tgt_fps, int orig_fps)
+{
+    a = 10000000;
+    b = 10000000000LL/((int64_t) orig_fps*1000)*tgt_fps;
+
+    if ((a + (b>>1))/b >= 10) {
+        E("Ratio must be less than 10 for linear access");
+        return -1;
+    }
+
+    last_frame = -1;
+    n = 1;
+    dropped_frames = 0;
+    adoped_frames = 0;
+    capture_start_time = get_time_now();
+    start_timestamp = 0;
+    first_timestamp = true;
+    avg_timestamp_per_frame = 0;
+    tgt_avg_time_per_frame = 10000000000LL/(int64_t) (tgt_fps*1000);
+    this->tgt_fps = tgt_fps;
+    return 0;
 }
 
 static void X264_log(void *p, int level, const char *fmt, va_list args)
@@ -155,7 +182,7 @@ int VideoEncoder::init(jobject video_config)
 
     m_params.i_keyint_max = m_fps.num / m_fps.den * m_i_frame_interval;
 
-    m_params.i_threads = xutil::cpu_num();
+    m_params.i_threads = cpu_num();
 
     m_params.b_annexb = 1;
 
@@ -166,16 +193,67 @@ int VideoEncoder::init(jobject video_config)
     }
 
     x264_encoder_parameters(m_enc, &m_params);
+
+    if (m_fps_ctrl.init(m_fps.num/m_fps.den,
+                        m_orig_fps.num/m_orig_fps.den) < 0)
+        return -1;
+
     return 0;
 }
 
 int VideoEncoder::feed(uint8_t *buffer, int len)
 {
-    uint64_t now = xutil::get_time_now();
+    uint64_t now = get_time_now();
+
     if (!m_start_pts) {
         m_start_pts = now;
     }
+
     uint64_t pts = now - m_start_pts;
+    if (!m_fps_ctrl.first_timestamp) {
+        uint64_t stamp_differ = now - m_fps_ctrl.start_timestamp;
+        m_fps_ctrl.start_timestamp = now;
+        m_fps_ctrl.avg_timestamp_per_frame =
+            (m_fps_ctrl.avg_timestamp_per_frame+stamp_differ)/2;
+
+        if (stamp_differ > m_fps_ctrl.tgt_avg_time_per_frame) {
+            ++m_fps_ctrl.low_diff_accept_frames;
+        } else {
+            m_fps_ctrl.get_frame =
+                ((int64_t) m_fps_ctrl.n*m_fps_ctrl.a+(m_fps_ctrl.b>>1))/m_fps_ctrl.b;
+            if ((m_fps_ctrl.last_frame < m_fps_ctrl.get_frame-1 &&
+                 m_fps_ctrl.get_frame-m_fps_ctrl.last_frame < 10)) {
+                if (m_fps_ctrl.last_frame < m_fps_ctrl.get_frame-1) {
+                    ++m_fps_ctrl.last_frame;
+                    ++m_fps_ctrl.dropped_frames;
+                    return 0;
+                }
+            }
+        }
+    } else {
+        m_fps_ctrl.start_timestamp = now;
+        m_fps_ctrl.avg_timestamp_per_frame = m_fps_ctrl.tgt_avg_time_per_frame;
+        m_fps_ctrl.first_timestamp = false;
+    }
+
+    ++m_fps_ctrl.adoped_frames;
+
+#ifdef XDEBUG
+    if (!(m_fps_ctrl.adoped_frames%m_fps_ctrl.tgt_fps)) {
+        D("Demux adopted frame rate %d%%",
+          (int) (m_fps_ctrl.adoped_frames*100/(m_fps_ctrl.adoped_frames+m_fps_ctrl.dropped_frames)));
+        D("Demux low_diff_accept_frames %ld",
+          (long) m_fps_ctrl.low_diff_accept_frames);
+        D("Demux frame rate is: %.2f fps",
+          m_fps_ctrl.adoped_frames*1000.0f/(get_time_now()-m_fps_ctrl.capture_start_time));
+        D("Demux average_timestamp_per_frame %.2f ms",
+          m_fps_ctrl.avg_timestamp_per_frame/10000.0f);
+    }
+#endif
+
+    m_fps_ctrl.last_frame = m_fps_ctrl.get_frame;
+    ++m_fps_ctrl.n;
+
     Packet *pkt = new Packet(buffer, len, pts, pts);
     return m_queue.push(pkt);
 }
@@ -344,6 +422,9 @@ int VideoEncoder::load_config(jobject video_config)
 
     CALL_METHOD(video_config, "getFPS", "()Lcom/dxyh/libfqrtmp/LibFQRtmp$Rational;");
     INIT_RATIONAL_MEMBER(m_fps, jval.l);
+
+    CALL_METHOD(video_config, "getOrigFPS", "()Lcom/dxyh/libfqrtmp/LibFQRtmp$Rational;");
+    INIT_RATIONAL_MEMBER(m_orig_fps, jval.l);
 
     CALL_METHOD(video_config, "getIFrameInterval", "()I");
     m_i_frame_interval = jval.i;

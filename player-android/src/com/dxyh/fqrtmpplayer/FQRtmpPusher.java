@@ -2,6 +2,15 @@ package com.dxyh.fqrtmpplayer;
 
 import java.util.List;
 
+import com.dxyh.fqrtmpplayer.camera.CameraHardwareException;
+import com.dxyh.fqrtmpplayer.camera.CameraHolder;
+import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
+import com.dxyh.fqrtmpplayer.gui.RotateImageView;
+import com.dxyh.fqrtmpplayer.gui.UiTools;
+import com.dxyh.fqrtmpplayer.util.Util;
+import com.dxyh.libfqrtmp.Event;
+import com.dxyh.libfqrtmp.LibFQRtmp;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -26,15 +35,6 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
-
-import com.dxyh.fqrtmpplayer.camera.CameraHardwareException;
-import com.dxyh.fqrtmpplayer.camera.CameraHolder;
-import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
-import com.dxyh.fqrtmpplayer.gui.RotateImageView;
-import com.dxyh.fqrtmpplayer.gui.UiTools;
-import com.dxyh.fqrtmpplayer.util.Util;
-import com.dxyh.libfqrtmp.Event;
-import com.dxyh.libfqrtmp.LibFQRtmp;
 
 @SuppressWarnings("deprecation")
 public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
@@ -545,14 +545,8 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
     }
 	
 	private void updateCameraParametersInitialize() {
-		int fps = mVideoConfig.getFPSInt();
-        List<Integer> frameRates = mParameters.getSupportedPreviewFrameRates();
-        if (frameRates != null && frameRates.contains(Integer.valueOf(fps))) {
-            Log.d(TAG, "set fps " + fps);
-            mParameters.setPreviewFrameRate(fps);
-        } else {
-        	Log.w(TAG, "fps(" + fps + ") not supported");
-        }
+	    // Will adjust the fps in native code
+	    mVideoConfig.setOrigFPSInt(mParameters.getPreviewFrameRate());
     }
 	
 	private static boolean isSupported(String value, List<String> supported) {

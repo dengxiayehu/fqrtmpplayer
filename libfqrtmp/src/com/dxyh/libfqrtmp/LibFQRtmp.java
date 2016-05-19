@@ -34,6 +34,7 @@ public class LibFQRtmp {
     	private int mWidth = -1;
     	private int mHeight = -1;
     	private Rational mFPS = new Rational(15, 1); // Temporary fixed
+    	private Rational mOrigFPS = new Rational(30, 1);
     	private int mIFrameInterval = 3;
     	private final boolean mRepeatHeaders = true;
     	private final int mBFrames = 0;
@@ -82,6 +83,14 @@ public class LibFQRtmp {
     	public int getFPSInt() {
     		return mFPS.num / mFPS.den;
     	}
+    	
+    	public void setOrigFPSInt(int fps) {
+    	    mOrigFPS.num = fps;
+    	    mOrigFPS.den = 1;
+    	}
+    	public Rational getOrigFPS() {
+            return mOrigFPS;
+        }
     	
     	public void setIFrameInterval(int interval) {
     		mIFrameInterval = interval;
