@@ -11,7 +11,7 @@
 extern JNIEnv *jni_get_env(const char *name);
 
 VideoEncoder::VideoEncoder() :
-    m_enc(NULL), m_thrd(NULL), m_quit(false), m_file_yuv(NULL), m_file_x264(NULL)
+    m_enc(NULL), m_start_pts(0), m_frame_num(0), m_thrd(NULL), m_quit(false), m_file_yuv(NULL), m_file_x264(NULL)
 {
     memset(&m_params, 0, sizeof(m_params));
 
@@ -166,14 +166,17 @@ int VideoEncoder::init(jobject video_config)
     }
 
     x264_encoder_parameters(m_enc, &m_params);
-
-    frac_init(&m_pts, 0, 1000 * m_fps.den, m_fps.num);
     return 0;
 }
 
 int VideoEncoder::feed(uint8_t *buffer, int len)
 {
-    Packet *pkt = new Packet(buffer, len);
+    uint64_t now = xutil::get_time_now();
+    if (!m_start_pts) {
+        m_start_pts = now;
+    }
+    uint64_t pts = now - m_start_pts;
+    Packet *pkt = new Packet(buffer, len, pts, pts);
     return m_queue.push(pkt);
 }
 
@@ -209,7 +212,7 @@ unsigned int VideoEncoder::encode_routine(void *arg)
         m_pic.img.plane[1] = m_pic.img.plane[0] + m_params.i_width * m_params.i_height;
         m_pic.img.i_stride[0] = m_params.i_width;
         m_pic.img.i_stride[1] = m_params.i_width;
-        m_pic.i_pts = m_pts.val;
+        m_pic.i_pts = m_frame_num++;
 
         do {
             frame_size = x264_encoder_encode(m_enc, &nals, &num_of_nals, &m_pic, &pic_out);
@@ -225,8 +228,8 @@ unsigned int VideoEncoder::encode_routine(void *arg)
             }
         } while (!m_quit && !ret && x264_encoder_delayed_frames(m_enc));
 
-        pkt_out->pts = pic_out.i_pts;
-        pkt_out->dts = pic_out.i_dts;
+        pkt_out->pts = pkt->pts;
+        pkt_out->dts = pkt->dts;
 
         if (m_file_x264) {
             m_file_x264->write_buffer(pkt_out->data, pkt_out->size);
@@ -238,7 +241,6 @@ unsigned int VideoEncoder::encode_routine(void *arg)
 
         m_fps_calc.check();
 
-        frac_add(&m_pts, 1000 * m_fps.den);
 cleanup:
         SAFE_DELETE(pkt);
     }

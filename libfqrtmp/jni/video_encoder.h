@@ -44,10 +44,11 @@ private:
     bool m_repeat_headers;
     int m_b_frames;
     bool m_deblocking_filter;
-    xutil::Frac m_pts;
     x264_param_t m_params;
     x264_t *m_enc;
     x264_picture_t m_pic;
+    uint64_t m_start_pts;
+    int m_frame_num;
     DECL_THREAD_ROUTINE(VideoEncoder, encode_routine);
     xutil::Thread *m_thrd;
     Queue<Packet *> m_queue;

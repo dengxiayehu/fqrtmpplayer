@@ -3,6 +3,8 @@
 #include "xmedia.h"
 #include "config.h"
 
+//#define XDEBUG_TIMESTAMP
+
 #define VIDEO_BODY_HEADER_LENGTH    16
 #define VIDEO_PAYLOAD_OFFSET        5
 
