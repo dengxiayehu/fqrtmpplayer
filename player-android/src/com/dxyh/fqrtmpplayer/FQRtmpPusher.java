@@ -776,10 +776,34 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 	
 	@Override
 	public void onPreviewFrame(byte[] data, Camera camera) {
-		if (mServerConnected && mLibFQRtmp != null) {
-			mLibFQRtmp.sendRawVideo(data, data.length);
-		}
-		
-		camera.addCallbackBuffer(data);
+        Camera.CameraInfo info = new Camera.CameraInfo();
+        Camera.getCameraInfo(mCameraId, info);
+        int rotation = 0;
+        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            rotation = (info.orientation - mOrientation + 360) % 360;
+        } else {
+            rotation = (info.orientation + mOrientation) % 360;
+        }
+        
+        switch (rotation) {
+        case 0:
+            //Log.d(TAG, "0, normal");
+            break;
+        case 90:
+            //Log.d(TAG, "90, rotate 90 clockwise");
+            break;
+        case 180:
+            //Log.d(TAG, "180, upside down");
+            break;
+        case 270:
+            //Log.d(TAG, "270, rotate 90 counterclockwise");
+            break;
+        }
+
+        if (mServerConnected && mLibFQRtmp != null) {
+            mLibFQRtmp.sendRawVideo(data, data.length);
+        }
+
+        camera.addCallbackBuffer(data);
 	}
 }
