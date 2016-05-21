@@ -17,8 +17,7 @@ adb install -r player-android/bin/FQRtmpPlayer-debug.apk
 TODO
 ====================
 1. Rotate camera preview data
-2. Sync audio & video
-3. ..
+2. ..
 
 Other
 ====================

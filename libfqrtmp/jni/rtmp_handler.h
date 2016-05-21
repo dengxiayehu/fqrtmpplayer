@@ -11,6 +11,7 @@ extern "C" {
 
 class VideoRawParser;
 class AudioRawParser;
+class JitterBuffer;
 
 class RtmpHandler {
 public:
@@ -47,6 +48,9 @@ private:
 
     static byte pkttyp2channel(byte typ);
 
+    static bool packet_cb(void *opaque, int pkttype,
+                          uint32_t pts, const byte *buf, uint32_t pktsize);
+
 private:
     std::string m_url;
 
@@ -59,6 +63,9 @@ private:
     DataInfo m_ainfo;
 
     xutil::MemHolder m_mem_pool;
+    xutil::RecursiveMutex m_mutex;
+
+    JitterBuffer *m_jitter;
 };
 
 #ifdef __cplusplus

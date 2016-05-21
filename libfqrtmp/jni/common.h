@@ -27,8 +27,9 @@ struct Packet {
     int size;
     uint64_t pts, dts;
 
-    explicit Packet(uint8_t *data_ = NULL, int size_ = 0, uint64_t pts_ = 0, uint64_t dts_ = 0);
-    ~Packet();
+    Packet();
+    Packet(uint8_t *data_, int size_, uint64_t pts_, uint64_t dts_);
+    virtual ~Packet();
 };
 
 typedef std::pair<uint32_t, byte *> NaluItem;

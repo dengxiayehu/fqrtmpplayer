@@ -4,6 +4,11 @@
 #define THREAD_NAME "common"
 extern JNIEnv *jni_get_env(const char *name);
 
+Packet::Packet() :
+    data(NULL), size(0), pts(0), dts(0)
+{
+}
+
 Packet::Packet(uint8_t *data_, int size_, uint64_t pts_, uint64_t dts_) :
     data(NULL), size(size_), pts(pts_), dts(dts_)
 {

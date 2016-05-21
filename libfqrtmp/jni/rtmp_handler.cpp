@@ -1,5 +1,8 @@
+#include <memory>
+
 #include "rtmp_handler.h"
 #include "raw_parser.h"
+#include "jitter_buffer.h"
 #include "xmedia.h"
 #include "config.h"
 
@@ -13,8 +16,11 @@ using namespace xutil;
 RtmpHandler::RtmpHandler() :
     m_rtmp(NULL),
     m_vparser(new VideoRawParser),
-    m_aparser(new AudioRawParser)
+    m_aparser(new AudioRawParser),
+    m_jitter(new JitterBuffer)
 {
+    struct PacketCallback pc = { this, packet_cb };
+    m_jitter->set_packet_callback(pc);
 }
 
 RtmpHandler::~RtmpHandler()
@@ -23,6 +29,7 @@ RtmpHandler::~RtmpHandler()
 
     SAFE_DELETE(m_vparser);
     SAFE_DELETE(m_aparser);
+    SAFE_DELETE(m_jitter);
 }
 
 int RtmpHandler::connect(const std::string &liveurl)
@@ -189,6 +196,8 @@ int RtmpHandler::send_video(int32_t timestamp, byte *dat, uint32_t length)
 
     m_vinfo.lts = timestamp;
 
+    AutoLock _l(m_mutex);
+
     int body_len = make_video_body(buf, cur-buf, m_vparser->is_key_frame());
     if (!send_rtmp_pkt(RTMP_PACKET_TYPE_VIDEO, timestamp+m_vinfo.tm_offset,
                        buf, body_len)) {
@@ -318,6 +327,8 @@ int RtmpHandler::send_audio(int32_t timestamp,
 
     m_ainfo.lts = timestamp;
 
+    AutoLock _l(m_mutex);
+
     // 2 bytes for 0xAF 0x00/0x01 (normally is so)
     byte *buf = (byte *) m_mem_pool.alloc(length-7+2);
     int body_len = make_audio_body(dat+7, length-7, buf, length-7+2);
@@ -361,9 +372,10 @@ byte RtmpHandler::pkttyp2channel(byte typ)
         return RTMP_SYSTEM_CHANNEL;
 }
 
-bool RtmpHandler::send_rtmp_pkt(int pkttype, uint32_t ts,
-                                const byte *buf, uint32_t pktsize)
+bool RtmpHandler::packet_cb(void *opaque, int pkttype,
+                            uint32_t pts, const byte *buf, uint32_t pktsize)
 {
+    RtmpHandler *hdlr = (RtmpHandler *) opaque;
     RTMPPacket rtmp_pkt;
     RTMPPacket_Reset(&rtmp_pkt);
     RTMPPacket_Alloc(&rtmp_pkt, pktsize);
@@ -371,11 +383,24 @@ bool RtmpHandler::send_rtmp_pkt(int pkttype, uint32_t ts,
     rtmp_pkt.m_packetType = pkttype;
     rtmp_pkt.m_nChannel = pkttyp2channel(pkttype);
     rtmp_pkt.m_headerType = RTMP_PACKET_SIZE_LARGE;
-    rtmp_pkt.m_nTimeStamp = ts;
+    rtmp_pkt.m_nTimeStamp = pts;
     rtmp_pkt.m_hasAbsTimestamp = 0;
-    rtmp_pkt.m_nInfoField2 = m_rtmp->m_stream_id;
+    rtmp_pkt.m_nInfoField2 = hdlr->m_rtmp->m_stream_id;
     rtmp_pkt.m_nBodySize = pktsize;
-    bool retval = RTMP_SendPacket(m_rtmp, &rtmp_pkt, FALSE);
+    bool retval = RTMP_SendPacket(hdlr->m_rtmp, &rtmp_pkt, FALSE);
     RTMPPacket_Free(&rtmp_pkt);
     return retval;
+}
+
+bool RtmpHandler::send_rtmp_pkt(int pkttype, uint32_t ts,
+                                const byte *buf, uint32_t pktsize)
+{
+    if (pkttype == RTMP_PACKET_TYPE_AUDIO ||
+        pkttype == RTMP_PACKET_TYPE_VIDEO) {
+        std::auto_ptr<RtmpPacket> pkt(
+                new RtmpPacket(pkttype, (uint8_t *) buf, pktsize, ts, ts));
+        return m_jitter->add_packet(pkt.get()) < 0 ? false : true;
+    }
+
+    return packet_cb(this, pkttype, ts, buf, pktsize);
 }

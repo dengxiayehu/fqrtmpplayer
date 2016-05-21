@@ -98,6 +98,7 @@ LOCAL_SRC_FILES := libfqrtmpjni.cpp \
     rtmp_handler.cpp \
     raw_parser.cpp \
     common.cpp \
+    jitter_buffer.cpp \
     xutil/xfile.cpp \
     xutil/xutil.cpp \
     xutil/xmedia.cpp
