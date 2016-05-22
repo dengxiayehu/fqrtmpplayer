@@ -1,4 +1,5 @@
 #include <memory>
+#include <libyuv.h>
 
 #include "video_encoder.h"
 #include "rtmp_handler.h"
@@ -10,6 +11,7 @@
 #define DUMP_X264   0
 
 using namespace xutil;
+using namespace libyuv;
 
 #define THREAD_NAME "video_encoder"
 extern JNIEnv *jni_get_env(const char *name);
@@ -470,7 +472,7 @@ jint closeVideoEncoder(JNIEnv *env, jobject thiz)
     return 0;
 }
 
-jint sendRawVideo(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
+jint sendRawVideo(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len, int rotation)
 {
     int ret = 0;
 
@@ -482,6 +484,26 @@ jint sendRawVideo(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len)
         if (!buffer) {
             E("Get video buffer failed");
             return -1;
+        }
+
+        RotationMode mode;
+
+        switch (rotation) {
+        case 0:
+            mode = kRotate0;
+            break;
+        case 90:
+            mode = kRotate90;
+            break;
+        case 180:
+            mode = kRotate180;
+            break;
+        case 270:
+            mode = kRotate270;
+            break;
+        default:
+            E("Unknown rotation %d", rotation);
+            break;
         }
 
         ret = gfq.video_enc->feed(buffer, len);

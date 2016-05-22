@@ -249,7 +249,7 @@ public class LibFQRtmp {
     private native void nativeRelease();
     
     public native int sendRawAudio(byte[] data, int length);
-    public native int sendRawVideo(byte[] data, int length);
+    public native int sendRawVideo(byte[] data, int length, int rotation);
     
     public native int openAudioEncoder(AudioConfig audioConfig);
     public native int closeAudioEncoder();

@@ -103,7 +103,7 @@ LOCAL_SRC_FILES := libfqrtmpjni.cpp \
     xutil/xutil.cpp \
     xutil/xmedia.cpp
 
-LOCAL_C_INCLUDES := $(PRIVATE_INCDIR) $(LOCAL_PATH)/xutil
+LOCAL_C_INCLUDES := $(PRIVATE_INCDIR) $(LOCAL_PATH)/xutil $(LOCAL_PATH)/libyuv/include
 LOCAL_CFLAGS := -Wall
 LOCAL_LDLIBS := -llog
 LOCAL_SHARED_LIBRARIES := rtmp

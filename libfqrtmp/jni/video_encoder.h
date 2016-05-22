@@ -80,7 +80,7 @@ private:
 
 jint openVideoEncoder(JNIEnv *env, jobject, jobject);
 jint closeVideoEncoder(JNIEnv *env, jobject);
-jint sendRawVideo(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len);
+jint sendRawVideo(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len, int rotation);
 
 #ifdef __cplusplus
 }

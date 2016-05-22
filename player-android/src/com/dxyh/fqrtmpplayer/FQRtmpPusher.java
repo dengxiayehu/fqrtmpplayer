@@ -801,7 +801,7 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
         }
 
         if (mServerConnected && mLibFQRtmp != null) {
-            mLibFQRtmp.sendRawVideo(data, data.length);
+            mLibFQRtmp.sendRawVideo(data, data.length, rotation);
         }
 
         camera.addCallbackBuffer(data);

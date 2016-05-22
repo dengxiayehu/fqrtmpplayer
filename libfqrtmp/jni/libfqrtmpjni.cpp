@@ -30,7 +30,7 @@ static JNINativeMethod method[] = {
     {"nativeNew", "(Ljava/lang/String;)V", (void *) nativeNew},
     {"nativeRelease", "()V", (void *) nativeRelease},
     {"sendRawAudio", "([BI)I", (void *) sendRawAudio},
-    {"sendRawVideo", "([BI)I", (void *) sendRawVideo},
+    {"sendRawVideo", "([BII)I", (void *) sendRawVideo},
     {"openAudioEncoder", "(Lcom/dxyh/libfqrtmp/LibFQRtmp$AudioConfig;)I", (void *) openAudioEncoder},
     {"closeAudioEncoder", "()I", (void *) closeAudioEncoder},
     {"openVideoEncoder", "(Lcom/dxyh/libfqrtmp/LibFQRtmp$VideoConfig;)I", (void *) openVideoEncoder},
