@@ -107,5 +107,7 @@ LOCAL_C_INCLUDES := $(PRIVATE_INCDIR) $(LOCAL_PATH)/xutil
 LOCAL_CFLAGS := -Wall
 LOCAL_LDLIBS := -llog
 LOCAL_SHARED_LIBRARIES := rtmp
-LOCAL_STATIC_LIBRARIES := fdk-aac x264
+LOCAL_STATIC_LIBRARIES := fdk-aac x264 libyuv_static
 include $(BUILD_SHARED_LIBRARY)
+####################################
+include $(call all-makefiles-under,$(LOCAL_PATH))
