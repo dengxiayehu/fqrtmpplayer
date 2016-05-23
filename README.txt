@@ -1,8 +1,8 @@
-2016-3-24 The day I was born.
-
 README for the fqrtmpplayer
 ===============================
 This is a player as well as a tool for Android rtmp live streaming.
+You can broadcast the world in landscape mode.
+Compile it on a Linux operating system.
 
 Compile
 ====================
@@ -13,11 +13,6 @@ export ANDROID_SDK=/opt/android-sdks/
 Run
 ====================
 adb install -r player-android/bin/FQRtmpPlayer-debug.apk
-
-TODO
-====================
-1. Rotate camera preview data
-2. ..
 
 Other
 ====================
