@@ -2,15 +2,6 @@ package com.dxyh.fqrtmpplayer;
 
 import java.util.List;
 
-import com.dxyh.fqrtmpplayer.camera.CameraHardwareException;
-import com.dxyh.fqrtmpplayer.camera.CameraHolder;
-import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
-import com.dxyh.fqrtmpplayer.gui.RotateImageView;
-import com.dxyh.fqrtmpplayer.gui.UiTools;
-import com.dxyh.fqrtmpplayer.util.Util;
-import com.dxyh.libfqrtmp.Event;
-import com.dxyh.libfqrtmp.LibFQRtmp;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -35,6 +26,15 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+
+import com.dxyh.fqrtmpplayer.camera.CameraHardwareException;
+import com.dxyh.fqrtmpplayer.camera.CameraHolder;
+import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
+import com.dxyh.fqrtmpplayer.gui.RotateImageView;
+import com.dxyh.fqrtmpplayer.gui.UiTools;
+import com.dxyh.fqrtmpplayer.util.Util;
+import com.dxyh.libfqrtmp.Event;
+import com.dxyh.libfqrtmp.LibFQRtmp;
 
 @SuppressWarnings("deprecation")
 public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
@@ -459,11 +459,7 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
     }
 	
 	private static int calcRawBufferSize(int width, int height) {
-		int stride = (int) Math.ceil(width / 16.0) * 16;
-        int ySize = stride * height;
-        int cStride = (int) Math.ceil(width / 32.0) * 16;
-        int cSize = cStride * height / 2;
-        return ySize + cSize * 2;
+		return width * height * 3 / 2;
 	}
 	
 	private void setPreviewDisplay(SurfaceHolder holder) {

@@ -96,26 +96,6 @@ static void X264_log(void *p, int level, const char *fmt, va_list args)
     __android_log_write(level_map[level], LOG_TAG, buf);
 }
 
-enum ImageFormat {
-    PIX_FMT_NV21 = 0x00000011,
-    PIX_FMT_YV12 = 0x32315659,
-};
-
-static int convert_pix_fmt(ImageFormat pix_fmt)
-{
-    switch (pix_fmt) {
-#ifdef X264_CSP_NV21
-    case PIX_FMT_NV21:      return X264_CSP_NV21;
-#endif
-#ifdef X264_CSP_YV12
-    case PIX_FMT_YV12:      return X264_CSP_YV12;
-#endif
-    default:
-        E("Unsupported pix_fmt: %d", pix_fmt);
-        return -1;
-    };
-}
-
 int VideoEncoder::init(jobject video_config)
 {
     if (load_config(video_config) < 0) {
@@ -142,7 +122,7 @@ int VideoEncoder::init(jobject video_config)
     m_params.pf_log = X264_log;
     m_params.p_log_private = this;
     m_params.i_log_level = X264_LOG_INFO;
-    m_params.i_csp = convert_pix_fmt((ImageFormat) m_input_csp);
+    m_params.i_csp = X264_CSP_I420;
 
     if (m_bitrate > 0) {
         m_params.rc.i_bitrate = m_bitrate / 1000;
@@ -203,8 +183,34 @@ int VideoEncoder::init(jobject video_config)
     return 0;
 }
 
-int VideoEncoder::feed(uint8_t *buffer, int len)
+int VideoEncoder::feed(uint8_t *buffer, int len, int rotation)
 {
+    int dst_i420_y_size = m_width * m_height;
+    int dst_i420_uv_size = ((m_width + 1) / 2) * ((m_height + 1) / 2);
+    int dst_i420_size = dst_i420_y_size + dst_i420_uv_size * 2;
+
+    align_buffer_64(dst_i420_c, dst_i420_size);
+
+    switch (rotation) {
+    default:
+    case 0:
+        NV12ToI420Rotate(buffer, m_width,
+                         buffer + m_width * m_height, (m_width + 1) & ~1,
+                         dst_i420_c, m_width,
+                         dst_i420_c + dst_i420_y_size + dst_i420_uv_size, (m_width + 1) / 2,
+                         dst_i420_c + dst_i420_y_size, (m_width + 1) / 2,
+                         m_width, m_height, kRotate0);
+        break;
+    case 180:
+        NV12ToI420Rotate(buffer, m_width,
+                         buffer + m_width * m_height, (m_width + 1) & ~1,
+                         dst_i420_c, m_width,
+                         dst_i420_c + dst_i420_y_size + dst_i420_uv_size, (m_width + 1) / 2,
+                         dst_i420_c + dst_i420_y_size, (m_width + 1) / 2,
+                         m_width, m_height, kRotate180);
+        break;
+    }
+
     uint64_t now = get_time_now();
 
     if (!m_start_pts) {
@@ -228,6 +234,7 @@ int VideoEncoder::feed(uint8_t *buffer, int len)
                 if (m_fps_ctrl.last_frame < m_fps_ctrl.get_frame-1) {
                     ++m_fps_ctrl.last_frame;
                     ++m_fps_ctrl.dropped_frames;
+                    free_aligned_buffer_64(dst_i420_c);
                     return 0;
                 }
             }
@@ -256,7 +263,8 @@ int VideoEncoder::feed(uint8_t *buffer, int len)
     m_fps_ctrl.last_frame = m_fps_ctrl.get_frame;
     ++m_fps_ctrl.n;
 
-    Packet *pkt = new Packet(buffer, len, pts, pts);
+    Packet *pkt = new Packet(dst_i420_c, dst_i420_size, pts, pts);
+    free_aligned_buffer_64(dst_i420_c);
     return m_queue.push(pkt);
 }
 
@@ -286,12 +294,14 @@ unsigned int VideoEncoder::encode_routine(void *arg)
 
         x264_picture_init(&m_pic);
         m_pic.img.i_csp = m_params.i_csp;
-        m_pic.img.i_plane = 2;
+        m_pic.img.i_plane = 3;
 
         m_pic.img.plane[0] = pkt->data;
         m_pic.img.plane[1] = m_pic.img.plane[0] + m_params.i_width * m_params.i_height;
+        m_pic.img.plane[2] = m_pic.img.plane[1] + m_params.i_width * m_params.i_height / 4;
         m_pic.img.i_stride[0] = m_params.i_width;
-        m_pic.img.i_stride[1] = m_params.i_width;
+        m_pic.img.i_stride[1] = (m_params.i_width + 1) / 2;
+        m_pic.img.i_stride[2] = (m_params.i_width + 1) / 2;
         m_pic.i_pts = m_frame_num++;
 
         do {
@@ -486,27 +496,7 @@ jint sendRawVideo(JNIEnv *env, jobject thiz, jbyteArray byte_arr, jint len, int 
             return -1;
         }
 
-        RotationMode mode;
-
-        switch (rotation) {
-        case 0:
-            mode = kRotate0;
-            break;
-        case 90:
-            mode = kRotate90;
-            break;
-        case 180:
-            mode = kRotate180;
-            break;
-        case 270:
-            mode = kRotate270;
-            break;
-        default:
-            E("Unknown rotation %d", rotation);
-            break;
-        }
-
-        ret = gfq.video_enc->feed(buffer, len);
+        ret = gfq.video_enc->feed(buffer, len, rotation);
 
         env->ReleaseByteArrayElements(byte_arr, (jbyte *) buffer, 0);
     }

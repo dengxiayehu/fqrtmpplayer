@@ -21,7 +21,7 @@ public:
     ~VideoEncoder();
 
     int init(jobject video_config);
-    int feed(uint8_t *buffer, int len);
+    int feed(uint8_t *buffer, int len, int rotation);
     volatile bool quit() const;
 
 private:
