@@ -7,12 +7,14 @@ if [ -z "$ANDROID_NDK" -o -z "$ANDROID_SDK" ]; then
     exit 1
 fi
 
-UNAMES=$(uname -s)
-export MKFLAGS=
-if which nproc >/dev/null; then
-    export MKFLAGS=-j`nproc`
-else
-    export MKFLAGS=-j`cat /proc/cpuinfo | grep '^processor.*: *[0-9]*' | wc -l`
+if [ -z "$MKFLAGS" ]; then
+    UNAMES=$(uname -s)
+    MKFLAGS=
+    if which nproc >/dev/null; then
+        export MKFLAGS=-j`nproc`
+    elif [ "$UNAMES" == "Darwin" ] && which sysctl >/dev/null; then
+        export MKFLAGS=-j`sysctl -n machdep.cpu.thread_count`
+    fi
 fi
 
 bash contrib/compile-contrib.sh
