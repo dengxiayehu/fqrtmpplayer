@@ -49,7 +49,6 @@ int RtmpHandler::connect(const std::string &liveurl)
 
     RTMP_Init(m_rtmp);
     m_rtmp->Link.timeout = SOCK_TIMEOUT;
-    m_rtmp->m_outChunkSize = RTMP_CHUNK_SIZE;
 
     RTMP_LogSetLevel(RTMP_LOGLEVEL);
     RTMP_LogSetCallback(rtmp_log);
@@ -74,16 +73,6 @@ int RtmpHandler::connect(const std::string &liveurl)
         E("RTMP_ConnectStream failed for liveurl: \"%s\"",
           liveurl.c_str());
         goto bail;
-    }
-
-    if (m_rtmp->m_outChunkSize != RTMP_DEFAULT_CHUNKSIZE) {
-        byte buf[4];
-        put_be32(buf, m_rtmp->m_outChunkSize);
-        if (!send_rtmp_pkt(RTMP_PACKET_TYPE_CHUNK_SIZE, 0, buf, 4)) {
-            E("Send chunk size %d to server failed",
-              m_rtmp->m_outChunkSize);
-            goto bail;
-        }
     }
 
     m_url = liveurl;
