@@ -153,6 +153,7 @@ static jstring version(JNIEnv *env, jobject thiz)
 }
 
 static std::string liveurl;
+static std::string flvpath;
 
 static int parse_arg(const char *str)
 {
@@ -175,17 +176,21 @@ static int parse_arg(const char *str)
     BEGIN
     struct option longopts[] = {
         {"live",    required_argument, NULL, 'L'},
-        // TODO: other options
+        {"flvpath", required_argument, NULL, 'f'},
         {0, 0, 0, 0}
     };
     int ch;
 
     optind = 0;
     while ((ch = getopt_long(argc, (char * const *) argv,
-                             ":L:W;", longopts, NULL)) != -1) {
+                             ":L:f:W;", longopts, NULL)) != -1) {
         switch (ch) {
         case 'L':
             liveurl = optarg;
+            break;
+
+        case 'f':
+            flvpath = optarg;
             break;
 
         case 0:
@@ -229,7 +234,7 @@ static void nativeNew(JNIEnv *env, jobject thiz, jstring cmdline)
 
     libfqrtmp_event_send(OPENING, 0, jnu_new_string(""));
 
-    gfq.rtmp_hdlr = new RtmpHandler;
+    gfq.rtmp_hdlr = new RtmpHandler(flvpath);
     if (gfq.rtmp_hdlr->connect(liveurl) < 0) {
         libfqrtmp_event_send(ENCOUNTERED_ERROR,
                              -1001, jnu_new_string("rtmp_connect failed"));

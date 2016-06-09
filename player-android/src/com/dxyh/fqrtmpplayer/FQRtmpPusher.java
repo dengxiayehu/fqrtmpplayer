@@ -32,6 +32,7 @@ import com.dxyh.fqrtmpplayer.camera.CameraHolder;
 import com.dxyh.fqrtmpplayer.gui.PreviewFrameLayout;
 import com.dxyh.fqrtmpplayer.gui.RotateImageView;
 import com.dxyh.fqrtmpplayer.gui.UiTools;
+import com.dxyh.fqrtmpplayer.util.AndroidDevices;
 import com.dxyh.fqrtmpplayer.util.Util;
 import com.dxyh.libfqrtmp.Event;
 import com.dxyh.libfqrtmp.LibFQRtmp;
@@ -54,6 +55,8 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
     private static final float ACCEL_THRESHOLD = .3f;
     
     private static final int AUDIO_FRAME_PERIOD = 30; // In Milliseconds
+    
+    private String mFlvPath = AndroidDevices.EXTERNAL_PUBLIC_DIRECTORY + "/fqrtmp.flv";
     
     private Activity mActivity;
     
@@ -174,7 +177,8 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
 	    	@Override
 	    	public void run() {
 	    		mServerConnected = false;
-	    		mLibFQRtmp.start("-L " + url);
+	    		String param = "-L " + url + (TextUtils.isEmpty(mFlvPath) ? "" : " -f " + mFlvPath);
+	    		mLibFQRtmp.start(param);
 	    	}
 	    };
 	    startLibFQRtmpThread.start();

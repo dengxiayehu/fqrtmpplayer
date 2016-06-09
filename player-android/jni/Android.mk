@@ -99,6 +99,7 @@ LOCAL_SRC_FILES := libfqrtmpjni.cpp \
     raw_parser.cpp \
     common.cpp \
     jitter_buffer.cpp \
+    flv_muxer.cpp \
     xutil/xfile.cpp \
     xutil/xutil.cpp \
     xutil/xmedia.cpp

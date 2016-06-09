@@ -3,6 +3,7 @@
 
 #include <librtmp/rtmp.h>
 
+#include "flv_muxer.h"
 #include "xutil.h"
 
 #ifdef __cplusplus
@@ -15,7 +16,7 @@ class JitterBuffer;
 
 class RtmpHandler {
 public:
-    RtmpHandler();
+    RtmpHandler(const std::string &flvpath);
     ~RtmpHandler();
 
     int connect(const std::string &liveurl);
@@ -66,6 +67,8 @@ private:
     xutil::RecursiveMutex m_mutex;
 
     JitterBuffer *m_jitter;
+
+    FLVMuxer m_flvmuxer;
 };
 
 #ifdef __cplusplus

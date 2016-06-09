@@ -13,7 +13,7 @@
 
 using namespace xutil;
 
-RtmpHandler::RtmpHandler() :
+RtmpHandler::RtmpHandler(const std::string &flvpath) :
     m_rtmp(NULL),
     m_vparser(new VideoRawParser),
     m_aparser(new AudioRawParser),
@@ -21,6 +21,12 @@ RtmpHandler::RtmpHandler() :
 {
     struct PacketCallback pc = { this, packet_cb };
     m_jitter->set_packet_callback(pc);
+
+    if (!flvpath.empty()) {
+        if (m_flvmuxer.set_file(flvpath) < 0) {
+            E("flvmuxer's set_file() failed");
+        }
+    }
 }
 
 RtmpHandler::~RtmpHandler()
@@ -376,6 +382,16 @@ bool RtmpHandler::packet_cb(void *opaque, int pkttype,
                             uint32_t pts, const byte *buf, uint32_t pktsize)
 {
     RtmpHandler *hdlr = (RtmpHandler *) opaque;
+
+    if ((pkttype == RTMP_PACKET_TYPE_AUDIO ||
+         pkttype == RTMP_PACKET_TYPE_VIDEO) &&
+        hdlr->m_flvmuxer.is_opened()) {
+        if (hdlr->m_flvmuxer.write_tag(pkttype, pts, buf, pktsize) < 0) {
+            E("Write tag to flv file \"%s\" failed (cont)",
+              hdlr->m_flvmuxer.get_path());
+        }
+    }
+
     RTMPPacket rtmp_pkt;
     RTMPPacket_Reset(&rtmp_pkt);
     RTMPPacket_Alloc(&rtmp_pkt, pktsize);
