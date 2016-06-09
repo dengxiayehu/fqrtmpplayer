@@ -18,5 +18,4 @@ if [ -z "$MKFLAGS" ]; then
 fi
 
 bash contrib/compile-contrib.sh
-bash libfqrtmp/compile-libfqrtmp.sh
 bash player-android/compile-player-android.sh

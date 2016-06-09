@@ -24,16 +24,16 @@ public class LibFQRtmp {
     };
     
     public class VideoConfig {
-    	private int mCamcorderProfileId = CamcorderProfile.QUALITY_480P;
+    	private int mCamcorderProfileId = CamcorderProfile.QUALITY_480P; // Temporary fixed, you can modify it
     	private final String mPreset = "ultrafast";
     	private final String mTune = "zerolatency";
     	private final String mProfile = "baseline";
     	private int mLevelIDC = -1;
     	private int mInputCSP = ImageFormat.NV21;
-    	private int mBitrate = 200 * 1000; // Temporary fixed
+    	private int mBitrate = 450 * 1000; // Ditto
     	private int mWidth = -1;
     	private int mHeight = -1;
-    	private Rational mFPS = new Rational(15, 1); // Temporary fixed
+    	private Rational mFPS = new Rational(15, 1); // Ditto
     	private Rational mOrigFPS = new Rational(30, 1);
     	private int mIFrameInterval = 3;
     	private final boolean mRepeatHeaders = true;
@@ -127,7 +127,7 @@ public class LibFQRtmp {
     }
     
     public class AudioConfig {
-    	private int mSamplerateInHz = 11025;
+    	private int mSamplerateInHz = 44100;
     	private int mChannel = AudioFormat.CHANNEL_IN_STEREO;
     	private int mEncoding = AudioFormat.ENCODING_PCM_16BIT;
     	private int mBitrate = -1; // Auto

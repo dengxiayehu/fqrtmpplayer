@@ -33,6 +33,7 @@ public class UiTools {
             edit.setHint(R.string.edit_hint);
         }
         edit.setSingleLine(true);
+        edit.setText("rtmp://192.168.6.11/live/va");
         edit.setSelection(edit.getText().toString().length());
         
         AlertDialog.Builder builder =

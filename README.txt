@@ -13,6 +13,7 @@ export ANDROID_SDK=/opt/android-sdks/
 Run
 ====================
 adb install -r player-android/bin/FQRtmpPlayer-debug.apk
+Click "Menu" to choose "Play" or "Live".
 
 Other
 ====================
