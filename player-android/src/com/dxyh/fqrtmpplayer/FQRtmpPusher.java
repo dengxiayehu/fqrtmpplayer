@@ -785,21 +785,6 @@ public class FQRtmpPusher implements IFQRtmp, SurfaceHolder.Callback,
             rotation = (info.orientation + mOrientation) % 360;
         }
         
-        switch (rotation) {
-        case 0:
-            //Log.d(TAG, "0, normal");
-            break;
-        case 90:
-            //Log.d(TAG, "90, rotate 90 clockwise");
-            break;
-        case 180:
-            //Log.d(TAG, "180, upside down");
-            break;
-        case 270:
-            //Log.d(TAG, "270, rotate 90 counterclockwise");
-            break;
-        }
-
         if (mServerConnected && mLibFQRtmp != null) {
             mLibFQRtmp.sendRawVideo(data, data.length, rotation);
         }
