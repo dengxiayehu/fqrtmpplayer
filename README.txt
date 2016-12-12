@@ -17,5 +17,5 @@ Click "Menu" to choose "Play" or "Live".
 
 Other
 ====================
-Any further information please contact me.
+Any bugs or questions please feel free to let me know.
 mail: dengxiayehu@yeah.net
